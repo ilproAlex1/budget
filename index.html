@@ -2,7 +2,7 @@
 <html lang="it">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3F4F9">
+<meta name="theme-color" content="#0A0907">
 <meta name="description" content="Gestisci il saldo mensile e le spese per categoria, con grafici e resoconti.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19,44 +19,51 @@
 <style>
   /* Layout: app a colonna singola stile smartphone, riepilogo del mese in alto, barra schede in basso */
   :root {
-    --bg: #F3F4F9;
-    --surface: #FFFFFF;
-    --surface-2: #EEF0F6;
-    --text: #14162B;
-    --muted: #6B7088;
-    --border: #E3E5EE;
-    --primary: #5B5BF7;
-    --primary-2: #8B5CF6;
-    --danger: #E5484D;
-    --danger-bg: #FDECEC;
-    --success: #12A150;
-    --success-bg: #E6F6EC;
-    --unassigned: #CBD0DD;
-    --grid: rgba(20, 22, 43, .08);
-    --shadow: 0 8px 28px rgba(20, 22, 43, .07);
-    --on-primary: #FFFFFF;
-    --save: #0F9F6E;
-    --save-2: #14B8A6;
+    /* Palette nero e oro, presa dall'icona dell'app */
+    --bg: #0A0907;
+    --surface: #16130E;
+    --surface-2: #231D14;
+    --text: #F5EEDD;
+    --muted: #A69676;
+    --border: #2F281B;
+    --primary: #D9A93A;
+    --primary-2: #F2CF6B;
+    --on-primary: #1A1306;
+    --danger: #FF6B5E;
+    --danger-bg: #3A1914;
+    --success: #4CC38A;
+    --success-bg: #13291C;
+    --unassigned: #3A3326;
+    --grid: rgba(242, 207, 107, .10);
+    --shadow: 0 8px 28px rgba(0, 0, 0, .45);
+    --glow: rgba(217, 169, 58, .28);
+    --hero-a: #2E2516;
+    --hero-b: #0B0906;
+    --hero-fg: #FFF4D6;
+    --hero-gold: #F2CF6B;
+    --hero-line: rgba(242, 207, 107, .45);
+    --save: #E2B44A;
+    --save-2: #A87A22;
     --radius: 20px;
     --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0D0E18; --surface: #171927; --surface-2: #232638; --text: #F1F2F8; --muted: #9A9EB6;
-      --border: #2A2D42; --primary: #7C7CFF; --primary-2: #A78BFA; --danger: #FF6369; --danger-bg: #3A1A1F;
-      --success: #3DD68C; --success-bg: #12301F; --unassigned: #3A3E55; --grid: rgba(255, 255, 255, .08);
-      --shadow: 0 8px 28px rgba(0, 0, 0, .35);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0D0E18; --surface: #171927; --surface-2: #232638; --text: #F1F2F8; --muted: #9A9EB6;
-    --border: #2A2D42; --primary: #7C7CFF; --primary-2: #A78BFA; --danger: #FF6369; --danger-bg: #3A1A1F;
-    --success: #3DD68C; --success-bg: #12301F; --unassigned: #3A3E55; --grid: rgba(255, 255, 255, .08);
-    --shadow: 0 8px 28px rgba(0, 0, 0, .35);
     color-scheme: dark;
   }
-
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F6F1E6; --surface: #FFFDF8; --surface-2: #F0E8D6; --text: #1C160B; --muted: #7A6A4C;
+      --border: #E6DCC6; --primary: #B8862B; --primary-2: #D9A93A; --danger: #D3392B; --danger-bg: #FBE9E6;
+      --success: #1E8E57; --success-bg: #E5F4EB; --unassigned: #DCD2BE; --grid: rgba(28, 22, 11, .08);
+      --shadow: 0 8px 28px rgba(60, 40, 0, .10); --glow: rgba(184, 134, 43, .25); --save: #D9A93A; --save-2: #B8862B;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F1E6; --surface: #FFFDF8; --surface-2: #F0E8D6; --text: #1C160B; --muted: #7A6A4C;
+    --border: #E6DCC6; --primary: #B8862B; --primary-2: #D9A93A; --danger: #D3392B; --danger-bg: #FBE9E6;
+    --success: #1E8E57; --success-bg: #E5F4EB; --unassigned: #DCD2BE; --grid: rgba(28, 22, 11, .08);
+    --shadow: 0 8px 28px rgba(60, 40, 0, .10); --glow: rgba(184, 134, 43, .25); --save: #D9A93A; --save-2: #B8862B;
+    color-scheme: light;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; }
   body {
@@ -83,8 +90,18 @@
     padding-block: 0 calc(104px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* ---------- Barra superiore: selettore del mese ---------- */
-  .topbar {
+  /* Sul computer: la foto fa da sfondo e l'app resta in primo piano */
+  @media (min-width: 760px) {
+    body { background: #050403 url('sfondo.webp') center / cover fixed no-repeat; }
+    .app {
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      min-height: 100vh;
+      box-shadow: 0 0 0 1px var(--hero-line), 0 30px 80px rgba(0, 0, 0, .6);
+    }
+  }
+
+  /* ---------- Barra superiore: selettore del mese ---------- */  .topbar {
     display: grid; grid-template-columns: 42px 1fr 42px 42px; gap: 8px; align-items: center;
     padding-block: 14px 12px;
   }
@@ -109,39 +126,41 @@
 
   /* ---------- Riquadro principale ---------- */
   .hero {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
-    color: var(--on-primary);
+    background: radial-gradient(120% 90% at 85% 0%, rgba(242, 207, 107, .22), transparent 55%), linear-gradient(160deg, var(--hero-a), var(--hero-b));
+    color: var(--hero-fg);
+    border: 1px solid var(--hero-line);
     border-radius: 26px;
     padding: 20px 20px 18px;
-    box-shadow: 0 14px 34px rgba(91, 91, 247, .30);
+    box-shadow: 0 14px 34px var(--glow);
     position: relative; overflow: hidden;
   }
   .hero::after {
     content: ""; position: absolute; width: 220px; height: 220px; border-radius: 50%;
-    background: rgba(255,255,255,.08); right: -70px; top: -90px; pointer-events: none;
+    background: rgba(242,207,107,.07); right: -70px; top: -90px; pointer-events: none;
   }
-  .hero-label { font-size: 13px; opacity: .9; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .hero-label { font-size: 13px; color: var(--hero-gold); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .hero-big { font-size: 38px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 14px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hero.neg .hero-big { color: #FFD6D8; }
+  .hero .hero-big { background: linear-gradient(180deg, #FFF1C7, #E2B44A); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero.neg .hero-big { background: none; -webkit-text-fill-color: #FF8A80; color: #FF8A80; }
   .neg-badge { display: none; font-size: 12px; font-weight: 800; background: #fff; color: #D22B33; padding: 3px 8px; border-radius: 99px; margin-left: 8px; vertical-align: middle; letter-spacing: 0; text-transform: none; }
   .hero.neg .neg-badge { display: inline-block; }
-  .hero-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
-  .hero-bar span { display: block; height: 100%; width: 0; border-radius: 99px; background: #fff; transition: width .45s cubic-bezier(.2,.8,.2,1), background .3s; }
-  .hero.neg .hero-bar span { background: #FFD1D3; }
+  .hero-bar { height: 10px; border-radius: 99px; background: rgba(242,207,107,.16); overflow: hidden; }
+  .hero-bar span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #B8862B, #F2CF6B); transition: width .45s cubic-bezier(.2,.8,.2,1), background .3s; }
+  .hero.neg .hero-bar span { background: #FF8A80; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; position: relative; z-index: 1; }
-  .stat { background: rgba(255,255,255,.14); border-radius: 16px; padding: 10px 12px; min-width: 0; }
+  .stat { background: rgba(242,207,107,.07); border: 1px solid rgba(242,207,107,.16); border-radius: 16px; padding: 10px 12px; min-width: 0; }
   .stat .k { display: block; font-size: 12px; opacity: .85; }
   .stat .v { font-size: 18px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat .p { font-size: 12px; opacity: .85; }
   .saldo-wrap { display: flex; align-items: baseline; gap: 4px; }
   .saldo-wrap input {
-    width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--on-primary);
-    font-size: 18px; font-weight: 800; padding: 0; border-bottom: 2px dashed rgba(255,255,255,.45);
+    width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--hero-fg);
+    font-size: 18px; font-weight: 800; padding: 0; border-bottom: 2px dashed rgba(242,207,107,.5);
   }
-  .saldo-wrap input::placeholder { color: rgba(255,255,255,.6); }
-  .saldo-wrap input:focus { border-bottom-color: #fff; }
+  .saldo-wrap input::placeholder { color: rgba(255,244,214,.4); }
+  .saldo-wrap input:focus { border-bottom-color: var(--hero-gold); }
   .saldo-wrap span { font-weight: 700; }
-  .stat-input { background: rgba(255,255,255,.22); }
+  .stat-input { background: rgba(242,207,107,.13); }
 
   .status {
     margin-top: 12px; padding: 11px 14px; border-radius: 14px;
@@ -151,7 +170,7 @@
     transition: background .3s, color .3s;
   }
   .status.danger { background: var(--danger-bg); color: var(--danger); animation: shake .4s; }
-  .status .mini-btn { margin-left: auto; background: var(--primary); color: #fff; font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; }
+  .status .mini-btn { margin-left: auto; background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; }
   @keyframes shake { 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
 
   /* Riepilogo compatto che compare scorrendo */
@@ -185,9 +204,9 @@
   .section-head h2 span { text-transform: capitalize; }
   .pill-btn {
     display: inline-flex; align-items: center; gap: 6px; flex: none;
-    background: var(--primary); color: #fff; font-weight: 700; font-size: 14px;
+    background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 14px;
     padding: 9px 14px; border-radius: 99px;
-    box-shadow: 0 6px 16px rgba(91,91,247,.3);
+    box-shadow: 0 6px 16px var(--glow);
     transition: transform .15s;
   }
   .pill-btn:active { transform: scale(.95); }
@@ -271,7 +290,7 @@
   }
   .btn:active { transform: scale(.96); }
   .btn.danger { color: var(--danger); }
-  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.primary { background: var(--primary); color: var(--on-primary); }
 
   /* ---------- Grafici ---------- */
   .chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
@@ -283,7 +302,7 @@
     transition: background .2s, color .2s, transform .15s;
   }
   .chip svg { width: 18px; height: 18px; }
-  .chip.active { background: var(--primary); color: #fff; }
+  .chip.active { background: var(--primary); color: var(--on-primary); }
   .chip:active { transform: scale(.95); }
 
   .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-top: 10px; }
@@ -322,7 +341,7 @@
 
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); }
   .seg button { padding: 10px 4px; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--muted); transition: background .2s, color .2s; }
-  .seg button.active { background: var(--primary); color: #fff; }
+  .seg button.active { background: var(--primary); color: var(--on-primary); }
   .year-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .year-row b { font-size: 20px; font-weight: 800; }
   .round-btn.sm { width: 36px; height: 36px; box-shadow: none; background: var(--surface-2); font-size: 17px; }
@@ -331,22 +350,22 @@
     position: relative; padding: 10px 0; border-radius: 12px; background: var(--surface-2);
     font-weight: 700; font-size: 13px; text-transform: capitalize; transition: background .2s, color .2s;
   }
-  .month-chips button.on { background: var(--primary); color: #fff; }
+  .month-chips button.on { background: var(--primary); color: var(--on-primary); }
   .month-chips button.has::after { content: ""; position: absolute; top: 5px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-  .month-chips button.on.has::after { background: #fff; }
+  .month-chips button.on.has::after { background: var(--on-primary); }
   .chip-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
   .link-btn { font-size: 13px; font-weight: 700; color: var(--primary); padding: 6px 8px; border-radius: 10px; }
   .link-btn:hover { background: var(--surface-2); }
 
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .tile { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 12px 14px; min-width: 0; }
-  .tile.wide { grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: var(--on-primary); }
+  .tile.wide { grid-column: 1 / -1; background: linear-gradient(160deg, var(--hero-a), var(--hero-b)); border: 1px solid var(--hero-line); color: var(--hero-fg); }
   .tile .k { font-size: 12px; color: var(--muted); font-weight: 600; }
   .tile.wide .k, .tile.wide .p { color: inherit; opacity: .88; }
   .tile .v { font-size: 19px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tile.wide .v { font-size: 28px; }
+  .tile.wide .v { font-size: 28px; color: var(--hero-gold); }
   .tile .v.over { color: var(--danger); }
-  .tile.wide .v.over { color: #FFD6D8; }
+  .tile.wide .v.over { color: #FF8A80; }
   .tile .p { font-size: 12px; color: var(--muted); }
 
   .hl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -381,8 +400,8 @@
   /* ---------- Risparmi ---------- */
   .sav-hero {
     background: linear-gradient(135deg, var(--save), var(--save-2));
-    color: #fff; border-radius: 26px; padding: 20px;
-    box-shadow: 0 14px 34px rgba(15, 159, 110, .28);
+    color: var(--on-primary); border-radius: 26px; padding: 20px;
+    box-shadow: 0 14px 34px var(--glow);
     position: relative; overflow: hidden;
   }
   .sav-hero::after {
@@ -392,16 +411,20 @@
   .sav-hero .hero-big { margin-bottom: 2px; }
   .sav-sub { font-size: 13px; opacity: .9; position: relative; z-index: 1; }
   .sav-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
-  .sav-btn { padding: 12px; border-radius: 14px; font-weight: 800; font-size: 15px; background: rgba(255,255,255,.2); color: #fff; transition: transform .15s, background .2s; }
-  .sav-btn:hover { background: rgba(255,255,255,.28); }
+  .sav-btn { padding: 12px; border-radius: 14px; font-weight: 800; font-size: 15px; background: rgba(26,19,6,.14); color: var(--on-primary); transition: transform .15s, background .2s; }
+  .sav-btn:hover { background: rgba(26,19,6,.22); }
+  .sav-hero .hero-label { color: inherit; opacity: .8; }
   .sav-btn:active { transform: scale(.96); }
   .sav-btn:disabled { opacity: .5; cursor: default; }
   .info-box { margin-top: 12px; padding: 11px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; background: var(--surface); box-shadow: var(--shadow); }
   .row .plus { color: var(--success); }
   .row .minus { color: var(--danger); }
 
-  /* ---------- Barra schede ---------- */
-  .tabbar {
+  /* ---------- Spese fisse ---------- */
+  .rec-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 2px 2px; font-weight: 800; }
+  select.text-input { appearance: none; -webkit-appearance: none; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+
+  /* ---------- Barra schede ---------- */  .tabbar {
     position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: min(470px, calc(100% - 24px));
@@ -466,7 +489,7 @@
   .color-input { width: 52px; height: 46px; border: 0; padding: 0; background: none; border-radius: 12px; cursor: pointer; }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
   .sheet-actions .btn { box-shadow: none; background: var(--surface-2); }
-  .sheet-actions .btn.primary { background: var(--primary); color: #fff; }
+  .sheet-actions .btn.primary { background: var(--primary); color: var(--on-primary); }
   .sheet-actions .btn.solid-danger { background: var(--danger); color: #fff; }
   .del-link { display: block; width: 100%; margin-top: 12px; padding: 12px; color: var(--danger); font-weight: 700; border-radius: 14px; }
   .del-link:hover { background: var(--danger-bg); }
@@ -544,6 +567,12 @@
       <button class="pill-btn" id="addCatBtn">＋ Categoria</button>
     </div>
     <div id="catList"></div>
+
+    <div class="section-head">
+      <h2>🔁 Spese fisse ogni mese</h2>
+      <button class="pill-btn" id="addRecBtn">＋ Fissa</button>
+    </div>
+    <div class="card"><div class="rows" id="recRows"></div></div>
     <div class="actions">
       <button class="btn" id="csvBtn1">📄 Esporta CSV</button>
       <button class="btn danger" id="resetBtn">↺ Resetta</button>
@@ -772,7 +801,7 @@
   // ---------- Stato ----------
   // data = dati sincronizzati (categorie + mesi); prefs = preferenze di questo dispositivo
   const freshCats = () => DEFAULT_CATS.map(c => ({ id: uid(), ...c }));
-  const freshData = () => ({ categories: freshCats(), months: {}, savings: { moves: [] }, updatedAt: 0 });
+  const freshData = () => ({ categories: freshCats(), months: {}, savings: { moves: [] }, recurring: [], updatedAt: 0 });
 
   function normalizeData(s) {
     if (!s || !Array.isArray(s.categories)) return null;
@@ -782,7 +811,7 @@
         if (!/^\d{4}-\d{2}$/.test(k) || !m) continue;
         const spese = {};
         for (const [id, v] of Object.entries(m.spese || {})) if (Number(v) > 0) spese[id] = round2(Number(v));
-        months[k] = { saldo: Number(m.saldo) || 0, spese };
+        months[k] = { saldo: Number(m.saldo) || 0, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [] };
       }
     }
     return {
@@ -802,6 +831,9 @@
             toMonth: /^\d{4}-\d{2}$/.test(m.toMonth) ? m.toMonth : null,
           })),
       },
+      recurring: (Array.isArray(s.recurring) ? s.recurring : [])
+        .filter(r => r && Number(r.amount) > 0 && r.catId && /^\d{4}-\d{2}$/.test(r.start))
+        .map(r => ({ id: String(r.id || uid()), name: String(r.name || 'Spesa fissa').slice(0, 40), amount: round2(Number(r.amount)), catId: String(r.catId), start: r.start })),
       updatedAt: Number(s.updatedAt) || 0,
     };
   }
@@ -829,6 +861,8 @@
   };
   const prefs = { ...prefsDefault, ...(readLS(PREFS_KEY) || {}) };
   if (!CHART_TYPES[prefs.chartType]) prefs.chartType = 'doughnut';
+  // Nuova grafica nero e oro: la prima volta parte in modalità scura
+  if (prefs.themeV !== 2) { prefs.theme = 'dark'; prefs.themeV = 2; }
   if (!['year', 'months', 'all'].includes(prefs.repMode)) prefs.repMode = 'year';
   if (!Number.isInteger(prefs.repYear)) prefs.repYear = prefsDefault.repYear;
   if (!Array.isArray(prefs.repMonths)) prefs.repMonths = prefsDefault.repMonths;
@@ -965,7 +999,7 @@
   let lastStatus = '';
   function renderSummary() {
     const t = saldo(), s = spent(), r = remaining();
-    const over = r < 0;
+    const over = t > 0 && r < 0;
     const label = monthLabel(curMonth);
     $('#monthName').textContent = label;
     document.querySelectorAll('.cur-month').forEach(el => el.textContent = label);
@@ -986,7 +1020,7 @@
     const st = $('#status');
     let cls = '', html;
     const prevKey = shiftMonth(curMonth, -1), prev = data.months[prevKey];
-    if (t <= 0 && s <= 0) {
+    if (t <= 0) {
       html = `<span>👋 Inserisci il saldo di ${monthOnly(curMonth)} per iniziare</span>`;
       if (prev && prev.saldo > 0) html += `<button class="mini-btn" id="copyPrev">Usa ${fmtEUR(prev.saldo)} come ${aMonth(prevKey)}</button>`;
     } else if (over) { cls = 'danger'; html = `<span>⚠️ Attenzione: hai superato il saldo di ${fmtEUR(-r)}</span>`; }
@@ -1044,7 +1078,7 @@
     if (!el) return;
     const t = saldo(), a = amountOf(c);
     const pct = t > 0 ? a / t * 100 : 0;
-    $('.cat-pct', el).innerHTML = (t > 0 ? `<b>${fmtPct(pct)}</b> del saldo` : 'Imposta il saldo del mese') + (c.savings ? ' · 🐷 nei risparmi' : '');
+    $('.cat-pct', el).innerHTML = (t > 0 ? `<b>${fmtPct(pct)}</b> del saldo` : 'Imposta il saldo del mese') + (c.savings ? ' · 🐷 nei risparmi' : '') + (data.recurring.some(r => r.catId === c.id) ? ' · 🔁 fissa' : '');
     $('.bar span', el).style.width = Math.min(100, pct) + '%';
 
     const input = $('.amount', el);
@@ -1219,11 +1253,12 @@
     $('#delCat')?.addEventListener('click', () => {
       confirmSheet({
         title: `Eliminare "${esc(cat.name)}"?`,
-        text: 'La categoria e le sue spese verranno rimosse da tutti i mesi. Le cifre torneranno nel saldo rimasto.',
+        text: 'La categoria, le sue spese fisse e le sue spese verranno rimosse da tutti i mesi. Le cifre torneranno nel saldo rimasto.',
         ok: 'Elimina',
         onOk: () => {
           data.categories = data.categories.filter(c => c.id !== cat.id);
           Object.values(data.months).forEach(m => delete m.spese[cat.id]);
+          data.recurring = data.recurring.filter(r => r.catId !== cat.id);
           commit(); renderList(); refresh(false); toast('Categoria eliminata');
         },
       });
@@ -2008,9 +2043,151 @@
     else if (mk) openMonth(mk.dataset.k);
   });
 
+  // ---------- Spese fisse (scalate da sole ogni mese) ----------
+  let recurringDone = false;
+
+  // Scala ogni spesa fissa una volta per mese, dal mese in cui parte fino a quello attuale.
+  // I mesi in cui è già stata scalata sono segnati in "applied", così non viene mai contata due volte.
+  function applyRecurring() {
+    const now = monthKey(), done = [];
+    for (const r of data.recurring) {
+      if (!catById(r.catId)) continue;
+      for (let k = r.start; k <= now; k = shiftMonth(k, 1)) {
+        const m = data.months[k] || (data.months[k] = { saldo: 0, spese: {} });
+        if (!m.applied) m.applied = [];
+        if (m.applied.includes(r.id)) continue;
+        m.spese[r.catId] = round2((m.spese[r.catId] || 0) + r.amount);
+        m.applied.push(r.id);
+        done.push(r.name);
+      }
+    }
+    if (done.length) commit();
+    return [...new Set(done)];
+  }
+  function runRecurringOnce() {
+    if (recurringDone) return;
+    recurringDone = true;
+    const names = applyRecurring();
+    if (names.length) { refresh(); setTimeout(() => toast(`🔁 Spese fisse scalate: ${names.join(', ')}`), 600); }
+  }
+  // Se l'app resta aperta e arriva un mese nuovo, scala le spese fisse quando torni a guardarla
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !recurringDone) return;
+    const names = applyRecurring();
+    if (names.length) { refresh(); toast(`🔁 Spese fisse scalate: ${names.join(', ')}`); }
+  });
+
+  function renderRecurring() {
+    const el = $('#recRows');
+    const now = monthKey(), m = data.months[now];
+    const list = data.recurring.filter(r => catById(r.catId));
+    if (!list.length) {
+      el.innerHTML = '<p class="note" style="margin:4px 2px">Abbonamenti, affitto, rate, palestra: aggiungili qui una volta e ogni mese verranno scalati da soli dalla categoria che scegli.</p>';
+      return;
+    }
+    const tot = round2(list.reduce((a, r) => a + r.amount, 0));
+    el.innerHTML = list.map(r => {
+      const c = catById(r.catId);
+      const applied = m && m.applied && m.applied.includes(r.id);
+      const when = r.start > now ? 'parte da ' + monthLabel(r.start) : applied ? '✓ già scalata ' + aMonth(now) : 'ogni mese';
+      return `<button class="row" data-rec="${r.id}">
+        <span><b style="text-transform:none">${esc(r.name)}</b></span>
+        <span class="r">${fmtEUR(r.amount)}</span>
+        <small>${esc(c.emoji + ' ' + c.name)} · ${when}</small>
+      </button>`;
+    }).join('') + `<div class="rec-foot"><span>Totale fisso al mese</span><span>${fmtEUR(tot)}</span></div>`;
+  }
+  $('#recRows').addEventListener('click', e => {
+    const b = e.target.closest('[data-rec]');
+    if (b) openRecSheet(data.recurring.find(r => r.id === b.dataset.rec));
+  });
+  $('#addRecBtn').addEventListener('click', () => openRecSheet(null));
+
+  function openRecSheet(rec) {
+    if (!data.categories.length) { toast('Prima crea una categoria'); return; }
+    const isNew = !rec, now = monthKey();
+    const defCat = (data.categories.find(c => /abbonam/i.test(c.name)) || data.categories[0]).id;
+    openSheet(`
+      <h3>${isNew ? 'Nuova spesa fissa' : 'Modifica spesa fissa'}</h3>
+      <p>${isNew ? 'Ogni mese questa cifra verrà scalata da sola dalla categoria che scegli.' : `Le modifiche valgono da ${monthOnly(now)} in poi; i mesi passati restano com'erano.`}</p>
+      <div class="field">
+        <label for="rName">Nome</label>
+        <input class="text-input" id="rName" maxlength="40" placeholder="Es. Netflix, affitto, palestra" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="rAmt">Importo al mese</label>
+        <input class="text-input big" id="rAmt" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
+      </div>
+      <div class="field">
+        <label for="rCat">Categoria</label>
+        <select class="text-input" id="rCat">${data.categories.map(c => `<option value="${c.id}">${esc(c.emoji + ' ' + c.name)}</option>`).join('')}</select>
+      </div>
+      ${isNew ? `<label class="toggle-row" style="margin:0 0 16px">
+        <span>Scala già ${aMonth(now)}<br><small style="color:var(--muted);font-weight:500">Se la togli, partirà dal mese prossimo</small></span>
+        <span class="switch"><input type="checkbox" id="rNow" checked><span></span></span>
+      </label>` : ''}
+      <div class="sheet-actions">
+        <button class="btn" data-close>Annulla</button>
+        <button class="btn primary" id="rSave">${isNew ? 'Aggiungi' : 'Salva'}</button>
+      </div>
+      ${isNew ? '' : '<button class="del-link" id="rDel">🗑️ Elimina spesa fissa</button>'}`);
+    $('#rName').value = rec ? rec.name : '';
+    $('#rAmt').value = rec ? fmtNum(rec.amount) : '';
+    $('#rCat').value = rec ? rec.catId : defCat;
+    if (isNew) setTimeout(() => $('#rName').focus(), 300);
+
+    $('#rSave').addEventListener('click', () => {
+      const name = $('#rName').value.trim(), amount = parseNum($('#rAmt').value), catId = $('#rCat').value;
+      if (!name) { $('#rName').focus(); toast('Scrivi il nome della spesa fissa'); return; }
+      if (!amount) { $('#rAmt').focus(); toast('Scrivi l\'importo'); return; }
+      if (isNew) {
+        const start = $('#rNow').checked ? now : shiftMonth(now, 1);
+        data.recurring.push({ id: uid(), name, amount, catId, start });
+        applyRecurring();
+        toast(start === now ? `${name}: ${fmtEUR(amount)} scalati ${aMonth(now)}` : `${name} partirà da ${monthLabel(start)}`);
+      } else {
+        // se questo mese è già stata scalata, aggiorna anche la cifra del mese
+        const m = data.months[now];
+        if (m && m.applied && m.applied.includes(rec.id)) {
+          m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
+          if (!m.spese[rec.catId]) delete m.spese[rec.catId];
+          m.spese[catId] = round2((m.spese[catId] || 0) + amount);
+        }
+        Object.assign(rec, { name, amount, catId });
+        toast('Spesa fissa aggiornata');
+      }
+      commit(); closeSheet(); refresh();
+    });
+    $('#rDel')?.addEventListener('click', () => openRecDelete(rec));
+  }
+
+  function openRecDelete(rec) {
+    const now = monthKey(), m = data.months[now];
+    const applied = !!(m && m.applied && m.applied.includes(rec.id));
+    const remove = alsoNow => {
+      if (alsoNow && applied) {
+        m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
+        if (!m.spese[rec.catId]) delete m.spese[rec.catId];
+        m.applied = m.applied.filter(x => x !== rec.id);
+      }
+      data.recurring = data.recurring.filter(r => r.id !== rec.id);
+      commit(); closeSheet(); refresh(); toast('Spesa fissa eliminata');
+    };
+    openSheet(`<h3>Eliminare "${esc(rec.name)}"?</h3>
+      <p>Dai prossimi mesi non verrà più scalata. I mesi passati restano com'erano.</p>
+      <div style="display:grid;gap:10px">
+        ${applied
+          ? `<button class="btn solid-danger" id="rDelNow" style="background:var(--danger);color:#fff">Elimina e togli anche da ${monthOnly(now)}</button>
+             <button class="btn" id="rDelNext" style="box-shadow:none;background:var(--surface-2)">Elimina, ma lascia ${monthOnly(now)} com'è</button>`
+          : '<button class="btn solid-danger" id="rDelNext" style="background:var(--danger);color:#fff">Elimina</button>'}
+        <button class="btn" data-close style="box-shadow:none">Annulla</button>
+      </div>`);
+    $('#rDelNow')?.addEventListener('click', () => remove(true));
+    $('#rDelNext').addEventListener('click', () => remove(false));
+  }
+
   // ---------- Schede ----------
-  function setTab(tab) {
-    prefs.tab = tab;
+  function setTab(tab) {    prefs.tab = tab;
     document.querySelectorAll('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
     document.querySelectorAll('.tabbar button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
     document.body.classList.toggle('rep', tab === 'report' || tab === 'savings');
@@ -2035,7 +2212,7 @@
   new IntersectionObserver(([en]) => $('#mini').classList.toggle('show', !en.isIntersecting), { threshold: 0 }).observe($('#hero'));
 
   // ---------- Aggiornamento globale ----------
-  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); renderSavings(); }
+  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); renderSavings(); renderRecurring(); }
   function refresh() { data.categories.forEach(updateCard); refreshSummaryAndCharts(); }
 
   // ---------- Avvio ----------
@@ -2044,6 +2221,7 @@
   syncChips();
   renderList();
   renderSummary();
+  renderRecurring();
   setTab(['charts', 'report', 'savings'].includes(prefs.tab) ? prefs.tab : 'budget');
   // Alla prima apertura di un mese nuovo: avvisa di quanto è andato nei risparmi
   (() => {
@@ -2061,9 +2239,18 @@
   })();
   if (document.fonts) document.fonts.ready.then(() => { chart && chart.update(); chart2 && chart2.update(); chart3 && chart3.update(); });
   writeLS(DATA_KEY, data);
+  runRecurringOnce();
   // Funzionamento offline e installazione come app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* l'app funziona anche senza */ });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      // Controlla se c'è una versione nuova ogni volta che riapri l'app
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); });
+    }).catch(() => { /* l'app funziona anche senza */ });
+    // Quando arriva una versione nuova, ricarica una volta per mostrarla
+    if (navigator.serviceWorker.controller) {
+      let ricaricata = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (!ricaricata) { ricaricata = true; location.reload(); } });
+    }
   }
 })();
 </script>
