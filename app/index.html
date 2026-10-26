@@ -2,7 +2,7 @@
 <html lang="it">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3F4F9">
+<meta name="theme-color" content="#0A0907">
 <meta name="description" content="Gestisci il saldo mensile e le spese per categoria, con grafici e resoconti.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19,42 +19,51 @@
 <style>
   /* Layout: app a colonna singola stile smartphone, riepilogo del mese in alto, barra schede in basso */
   :root {
-    --bg: #F3F4F9;
-    --surface: #FFFFFF;
-    --surface-2: #EEF0F6;
-    --text: #14162B;
-    --muted: #6B7088;
-    --border: #E3E5EE;
-    --primary: #5B5BF7;
-    --primary-2: #8B5CF6;
-    --danger: #E5484D;
-    --danger-bg: #FDECEC;
-    --success: #12A150;
-    --success-bg: #E6F6EC;
-    --unassigned: #CBD0DD;
-    --grid: rgba(20, 22, 43, .08);
-    --shadow: 0 8px 28px rgba(20, 22, 43, .07);
-    --on-primary: #FFFFFF;
+    /* Palette nero e oro, presa dall'icona dell'app */
+    --bg: #0A0907;
+    --surface: #16130E;
+    --surface-2: #231D14;
+    --text: #F5EEDD;
+    --muted: #A69676;
+    --border: #2F281B;
+    --primary: #D9A93A;
+    --primary-2: #F2CF6B;
+    --on-primary: #1A1306;
+    --danger: #FF6B5E;
+    --danger-bg: #3A1914;
+    --success: #4CC38A;
+    --success-bg: #13291C;
+    --unassigned: #3A3326;
+    --grid: rgba(242, 207, 107, .10);
+    --shadow: 0 8px 28px rgba(0, 0, 0, .45);
+    --glow: rgba(217, 169, 58, .28);
+    --hero-a: #2E2516;
+    --hero-b: #0B0906;
+    --hero-fg: #FFF4D6;
+    --hero-gold: #F2CF6B;
+    --hero-line: rgba(242, 207, 107, .45);
+    --save: #E2B44A;
+    --save-2: #A87A22;
     --radius: 20px;
     --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #0D0E18; --surface: #171927; --surface-2: #232638; --text: #F1F2F8; --muted: #9A9EB6;
-      --border: #2A2D42; --primary: #7C7CFF; --primary-2: #A78BFA; --danger: #FF6369; --danger-bg: #3A1A1F;
-      --success: #3DD68C; --success-bg: #12301F; --unassigned: #3A3E55; --grid: rgba(255, 255, 255, .08);
-      --shadow: 0 8px 28px rgba(0, 0, 0, .35);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0D0E18; --surface: #171927; --surface-2: #232638; --text: #F1F2F8; --muted: #9A9EB6;
-    --border: #2A2D42; --primary: #7C7CFF; --primary-2: #A78BFA; --danger: #FF6369; --danger-bg: #3A1A1F;
-    --success: #3DD68C; --success-bg: #12301F; --unassigned: #3A3E55; --grid: rgba(255, 255, 255, .08);
-    --shadow: 0 8px 28px rgba(0, 0, 0, .35);
     color-scheme: dark;
   }
-
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F6F1E6; --surface: #FFFDF8; --surface-2: #F0E8D6; --text: #1C160B; --muted: #7A6A4C;
+      --border: #E6DCC6; --primary: #B8862B; --primary-2: #D9A93A; --danger: #D3392B; --danger-bg: #FBE9E6;
+      --success: #1E8E57; --success-bg: #E5F4EB; --unassigned: #DCD2BE; --grid: rgba(28, 22, 11, .08);
+      --shadow: 0 8px 28px rgba(60, 40, 0, .10); --glow: rgba(184, 134, 43, .25); --save: #D9A93A; --save-2: #B8862B;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F6F1E6; --surface: #FFFDF8; --surface-2: #F0E8D6; --text: #1C160B; --muted: #7A6A4C;
+    --border: #E6DCC6; --primary: #B8862B; --primary-2: #D9A93A; --danger: #D3392B; --danger-bg: #FBE9E6;
+    --success: #1E8E57; --success-bg: #E5F4EB; --unassigned: #DCD2BE; --grid: rgba(28, 22, 11, .08);
+    --shadow: 0 8px 28px rgba(60, 40, 0, .10); --glow: rgba(184, 134, 43, .25); --save: #D9A93A; --save-2: #B8862B;
+    color-scheme: light;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; }
   body {
@@ -81,8 +90,18 @@
     padding-block: 0 calc(104px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* ---------- Barra superiore: selettore del mese ---------- */
-  .topbar {
+  /* Sul computer: la foto fa da sfondo e l'app resta in primo piano */
+  @media (min-width: 760px) {
+    body { background: #050403 url('sfondo.webp') center / cover fixed no-repeat; }
+    .app {
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      min-height: 100vh;
+      box-shadow: 0 0 0 1px var(--hero-line), 0 30px 80px rgba(0, 0, 0, .6);
+    }
+  }
+
+  /* ---------- Barra superiore: selettore del mese ---------- */  .topbar {
     display: grid; grid-template-columns: 42px 1fr 42px 42px; gap: 8px; align-items: center;
     padding-block: 14px 12px;
   }
@@ -107,39 +126,41 @@
 
   /* ---------- Riquadro principale ---------- */
   .hero {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
-    color: var(--on-primary);
+    background: radial-gradient(120% 90% at 85% 0%, rgba(242, 207, 107, .22), transparent 55%), linear-gradient(160deg, var(--hero-a), var(--hero-b));
+    color: var(--hero-fg);
+    border: 1px solid var(--hero-line);
     border-radius: 26px;
     padding: 20px 20px 18px;
-    box-shadow: 0 14px 34px rgba(91, 91, 247, .30);
+    box-shadow: 0 14px 34px var(--glow);
     position: relative; overflow: hidden;
   }
   .hero::after {
     content: ""; position: absolute; width: 220px; height: 220px; border-radius: 50%;
-    background: rgba(255,255,255,.08); right: -70px; top: -90px; pointer-events: none;
+    background: rgba(242,207,107,.07); right: -70px; top: -90px; pointer-events: none;
   }
-  .hero-label { font-size: 13px; opacity: .9; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .hero-label { font-size: 13px; color: var(--hero-gold); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .hero-big { font-size: 38px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 14px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hero.neg .hero-big { color: #FFD6D8; }
+  .hero .hero-big { background: linear-gradient(180deg, #FFF1C7, #E2B44A); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero.neg .hero-big { background: none; -webkit-text-fill-color: #FF8A80; color: #FF8A80; }
   .neg-badge { display: none; font-size: 12px; font-weight: 800; background: #fff; color: #D22B33; padding: 3px 8px; border-radius: 99px; margin-left: 8px; vertical-align: middle; letter-spacing: 0; text-transform: none; }
   .hero.neg .neg-badge { display: inline-block; }
-  .hero-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
-  .hero-bar span { display: block; height: 100%; width: 0; border-radius: 99px; background: #fff; transition: width .45s cubic-bezier(.2,.8,.2,1), background .3s; }
-  .hero.neg .hero-bar span { background: #FFD1D3; }
+  .hero-bar { height: 10px; border-radius: 99px; background: rgba(242,207,107,.16); overflow: hidden; }
+  .hero-bar span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #B8862B, #F2CF6B); transition: width .45s cubic-bezier(.2,.8,.2,1), background .3s; }
+  .hero.neg .hero-bar span { background: #FF8A80; }
   .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; position: relative; z-index: 1; }
-  .stat { background: rgba(255,255,255,.14); border-radius: 16px; padding: 10px 12px; min-width: 0; }
+  .stat { background: rgba(242,207,107,.07); border: 1px solid rgba(242,207,107,.16); border-radius: 16px; padding: 10px 12px; min-width: 0; }
   .stat .k { display: block; font-size: 12px; opacity: .85; }
   .stat .v { font-size: 18px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat .p { font-size: 12px; opacity: .85; }
   .saldo-wrap { display: flex; align-items: baseline; gap: 4px; }
   .saldo-wrap input {
-    width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--on-primary);
-    font-size: 18px; font-weight: 800; padding: 0; border-bottom: 2px dashed rgba(255,255,255,.45);
+    width: 100%; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--hero-fg);
+    font-size: 18px; font-weight: 800; padding: 0; border-bottom: 2px dashed rgba(242,207,107,.5);
   }
-  .saldo-wrap input::placeholder { color: rgba(255,255,255,.6); }
-  .saldo-wrap input:focus { border-bottom-color: #fff; }
+  .saldo-wrap input::placeholder { color: rgba(255,244,214,.4); }
+  .saldo-wrap input:focus { border-bottom-color: var(--hero-gold); }
   .saldo-wrap span { font-weight: 700; }
-  .stat-input { background: rgba(255,255,255,.22); }
+  .stat-input { background: rgba(242,207,107,.13); }
 
   .status {
     margin-top: 12px; padding: 11px 14px; border-radius: 14px;
@@ -149,7 +170,7 @@
     transition: background .3s, color .3s;
   }
   .status.danger { background: var(--danger-bg); color: var(--danger); animation: shake .4s; }
-  .status .mini-btn { margin-left: auto; background: var(--primary); color: #fff; font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; }
+  .status .mini-btn { margin-left: auto; background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 700; padding: 7px 12px; border-radius: 99px; }
   @keyframes shake { 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
 
   /* Riepilogo compatto che compare scorrendo */
@@ -183,9 +204,9 @@
   .section-head h2 span { text-transform: capitalize; }
   .pill-btn {
     display: inline-flex; align-items: center; gap: 6px; flex: none;
-    background: var(--primary); color: #fff; font-weight: 700; font-size: 14px;
+    background: var(--primary); color: var(--on-primary); font-weight: 700; font-size: 14px;
     padding: 9px 14px; border-radius: 99px;
-    box-shadow: 0 6px 16px rgba(91,91,247,.3);
+    box-shadow: 0 6px 16px var(--glow);
     transition: transform .15s;
   }
   .pill-btn:active { transform: scale(.95); }
@@ -269,7 +290,7 @@
   }
   .btn:active { transform: scale(.96); }
   .btn.danger { color: var(--danger); }
-  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.primary { background: var(--primary); color: var(--on-primary); }
 
   /* ---------- Grafici ---------- */
   .chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
@@ -281,7 +302,7 @@
     transition: background .2s, color .2s, transform .15s;
   }
   .chip svg { width: 18px; height: 18px; }
-  .chip.active { background: var(--primary); color: #fff; }
+  .chip.active { background: var(--primary); color: var(--on-primary); }
   .chip:active { transform: scale(.95); }
 
   .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; margin-top: 10px; }
@@ -315,12 +336,12 @@
   .rep-title { display: none; grid-column: 1 / 4; font-size: 22px; font-weight: 800; letter-spacing: -.02em; padding-left: 2px; }
   body.rep .rep-title { display: block; }
   body.rep #prevMonth, body.rep #nextMonth, body.rep .month-wrap,
-  body.rep .hero, body.rep .status, body.rep .mini { display: none; }
+  body.rep #hero, body.rep #status, body.rep .mini { display: none; }
   body.rep #tab-report > .section-head:first-child { margin-top: 4px; }
 
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); }
   .seg button { padding: 10px 4px; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--muted); transition: background .2s, color .2s; }
-  .seg button.active { background: var(--primary); color: #fff; }
+  .seg button.active { background: var(--primary); color: var(--on-primary); }
   .year-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .year-row b { font-size: 20px; font-weight: 800; }
   .round-btn.sm { width: 36px; height: 36px; box-shadow: none; background: var(--surface-2); font-size: 17px; }
@@ -329,22 +350,22 @@
     position: relative; padding: 10px 0; border-radius: 12px; background: var(--surface-2);
     font-weight: 700; font-size: 13px; text-transform: capitalize; transition: background .2s, color .2s;
   }
-  .month-chips button.on { background: var(--primary); color: #fff; }
+  .month-chips button.on { background: var(--primary); color: var(--on-primary); }
   .month-chips button.has::after { content: ""; position: absolute; top: 5px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-  .month-chips button.on.has::after { background: #fff; }
+  .month-chips button.on.has::after { background: var(--on-primary); }
   .chip-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
   .link-btn { font-size: 13px; font-weight: 700; color: var(--primary); padding: 6px 8px; border-radius: 10px; }
   .link-btn:hover { background: var(--surface-2); }
 
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
   .tile { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 12px 14px; min-width: 0; }
-  .tile.wide { grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary), var(--primary-2)); color: var(--on-primary); }
+  .tile.wide { grid-column: 1 / -1; background: linear-gradient(160deg, var(--hero-a), var(--hero-b)); border: 1px solid var(--hero-line); color: var(--hero-fg); }
   .tile .k { font-size: 12px; color: var(--muted); font-weight: 600; }
   .tile.wide .k, .tile.wide .p { color: inherit; opacity: .88; }
   .tile .v { font-size: 19px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tile.wide .v { font-size: 28px; }
+  .tile.wide .v { font-size: 28px; color: var(--hero-gold); }
   .tile .v.over { color: var(--danger); }
-  .tile.wide .v.over { color: #FFD6D8; }
+  .tile.wide .v.over { color: #FF8A80; }
   .tile .p { font-size: 12px; color: var(--muted); }
 
   .hl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -376,12 +397,38 @@
   .badge { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 99px; margin-left: 6px; vertical-align: 1px; background: color-mix(in srgb, var(--hc) 16%, transparent); color: var(--hc); text-transform: none; }
   .year-sub { display: flex; justify-content: space-between; gap: 10px; padding: 14px 2px 6px; font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); }
 
-  /* ---------- Barra schede ---------- */
-  .tabbar {
+  /* ---------- Risparmi ---------- */
+  .sav-hero {
+    background: linear-gradient(135deg, var(--save), var(--save-2));
+    color: var(--on-primary); border-radius: 26px; padding: 20px;
+    box-shadow: 0 14px 34px var(--glow);
+    position: relative; overflow: hidden;
+  }
+  .sav-hero::after {
+    content: ""; position: absolute; width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,.09); right: -70px; top: -90px; pointer-events: none;
+  }
+  .sav-hero .hero-big { margin-bottom: 2px; }
+  .sav-sub { font-size: 13px; opacity: .9; position: relative; z-index: 1; }
+  .sav-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; position: relative; z-index: 1; }
+  .sav-btn { padding: 12px; border-radius: 14px; font-weight: 800; font-size: 15px; background: rgba(26,19,6,.14); color: var(--on-primary); transition: transform .15s, background .2s; }
+  .sav-btn:hover { background: rgba(26,19,6,.22); }
+  .sav-hero .hero-label { color: inherit; opacity: .8; }
+  .sav-btn:active { transform: scale(.96); }
+  .sav-btn:disabled { opacity: .5; cursor: default; }
+  .info-box { margin-top: 12px; padding: 11px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; background: var(--surface); box-shadow: var(--shadow); }
+  .row .plus { color: var(--success); }
+  .row .minus { color: var(--danger); }
+
+  /* ---------- Spese fisse ---------- */
+  .rec-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 2px 2px; font-weight: 800; }
+  select.text-input { appearance: none; -webkit-appearance: none; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 36px; }
+
+  /* ---------- Barra schede ---------- */  .tabbar {
     position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    width: min(420px, calc(100% - 32px));
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px;
+    width: min(470px, calc(100% - 24px));
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px;
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
@@ -442,7 +489,7 @@
   .color-input { width: 52px; height: 46px; border: 0; padding: 0; background: none; border-radius: 12px; cursor: pointer; }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
   .sheet-actions .btn { box-shadow: none; background: var(--surface-2); }
-  .sheet-actions .btn.primary { background: var(--primary); color: #fff; }
+  .sheet-actions .btn.primary { background: var(--primary); color: var(--on-primary); }
   .sheet-actions .btn.solid-danger { background: var(--danger); color: #fff; }
   .del-link { display: block; width: 100%; margin-top: 12px; padding: 12px; color: var(--danger); font-weight: 700; border-radius: 14px; }
   .del-link:hover { background: var(--danger-bg); }
@@ -482,7 +529,7 @@
 
 <div class="app">
   <header class="topbar">
-    <div class="rep-title">Resoconto</div>
+    <div class="rep-title" id="repTitle">Resoconto</div>
     <button class="round-btn" id="prevMonth" title="Mese precedente" aria-label="Mese precedente">‹</button>
     <div class="month-wrap">
       <button class="month-btn" id="monthBtn" aria-label="Scegli il mese"><span class="month-name" id="monthName"></span></button>
@@ -520,6 +567,12 @@
       <button class="pill-btn" id="addCatBtn">＋ Categoria</button>
     </div>
     <div id="catList"></div>
+
+    <div class="section-head">
+      <h2>🔁 Spese fisse ogni mese</h2>
+      <button class="pill-btn" id="addRecBtn">＋ Fissa</button>
+    </div>
+    <div class="card"><div class="rows" id="recRows"></div></div>
     <div class="actions">
       <button class="btn" id="csvBtn1">📄 Esporta CSV</button>
       <button class="btn danger" id="resetBtn">↺ Resetta</button>
@@ -614,6 +667,33 @@
       <button class="btn" id="repCsv">📄 Esporta il resoconto in CSV</button>
     </div>
   </section>
+
+  <!-- ===== Scheda Risparmi ===== -->
+  <section class="tab" id="tab-savings">
+    <div class="sav-hero">
+      <div class="hero-label">Risparmio totale</div>
+      <div class="hero-big" id="savTotal">0,00 €</div>
+      <div class="sav-sub" id="savSub"></div>
+      <div class="sav-actions">
+        <button class="sav-btn" id="savOut">− Preleva</button>
+        <button class="sav-btn" id="savIn">＋ Versa</button>
+      </div>
+    </div>
+    <div class="info-box" id="savNext"></div>
+    <div class="tiles" id="savTiles"></div>
+
+    <div class="section-head"><h2>Andamento del conto</h2></div>
+    <div class="card">
+      <div class="chart-box short">
+        <canvas id="chart4" aria-label="Andamento del conto risparmi" role="img"></canvas>
+        <div class="chart-empty" id="chart4Empty"></div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Movimenti</h2></div>
+    <div class="card"><div class="rows" id="savRows"></div></div>
+    <p class="note">Quando un mese finisce, il saldo che non hai speso entra qui da solo. Entrano anche le cifre delle categorie segnate come risparmio (come "Risparmio"): puoi cambiarlo toccando l'icona di una categoria. Tocca un prelievo o un versamento per eliminarlo.</p>
+  </section>
 </div>
 
 <nav class="tabbar" role="tablist">
@@ -628,6 +708,10 @@
   <button role="tab" data-tab="report" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2.5v3M16 2.5v3M7.5 17v-3M12 17v-5M16.5 17v-2"/></svg>
     Resoconto
+  </button>
+  <button role="tab" data-tab="savings" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11.5c0-3.6-3.1-6.5-7-6.5-3.4 0-6.2 2.2-6.9 5.1L3 11v3l2.3.6c.5 1.4 1.4 2.5 2.7 3.3V20h3v-1.6h2V20h3v-2.2c1.8-1.1 3-2.9 3-5z"/><path d="M10 8.5h4"/><circle cx="15.5" cy="11" r=".6" fill="currentColor"/></svg>
+    Risparmi
   </button>
 </nav>
 
@@ -648,7 +732,7 @@
     { name: 'Benzina',     emoji: '⛽', color: '#F59E0B' },
     { name: 'Cibo',        emoji: '🍝', color: '#10B981' },
     { name: 'Viaggi',      emoji: '✈️', color: '#3B82F6' },
-    { name: 'Risparmio',   emoji: '🐷', color: '#8B5CF6' },
+    { name: 'Risparmio',   emoji: '🐷', color: '#8B5CF6', savings: true },
     { name: 'Svago',       emoji: '🎉', color: '#EC4899' },
     { name: 'Abbonamenti', emoji: '📺', color: '#06B6D4' },
     { name: 'Altro',       emoji: '📦', color: '#64748B' },
@@ -712,11 +796,12 @@
   const monthLabel = k => keyToDate(k).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
   const monthShort = k => keyToDate(k).toLocaleDateString('it-IT', { month: 'short', year: '2-digit' });
   const monthOnly = k => keyToDate(k).toLocaleDateString('it-IT', { month: 'long' });
+  const aMonth = k => (/^[aeiou]/i.test(monthOnly(k)) ? 'ad ' : 'a ') + monthOnly(k);   // "ad agosto", "a maggio"
 
   // ---------- Stato ----------
   // data = dati sincronizzati (categorie + mesi); prefs = preferenze di questo dispositivo
   const freshCats = () => DEFAULT_CATS.map(c => ({ id: uid(), ...c }));
-  const freshData = () => ({ categories: freshCats(), months: {}, updatedAt: 0 });
+  const freshData = () => ({ categories: freshCats(), months: {}, savings: { moves: [] }, recurring: [], updatedAt: 0 });
 
   function normalizeData(s) {
     if (!s || !Array.isArray(s.categories)) return null;
@@ -726,15 +811,29 @@
         if (!/^\d{4}-\d{2}$/.test(k) || !m) continue;
         const spese = {};
         for (const [id, v] of Object.entries(m.spese || {})) if (Number(v) > 0) spese[id] = round2(Number(v));
-        months[k] = { saldo: Number(m.saldo) || 0, spese };
+        months[k] = { saldo: Number(m.saldo) || 0, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [] };
       }
     }
     return {
       categories: s.categories.map(c => ({
         id: String(c.id || uid()), name: String(c.name || 'Categoria'), emoji: c.emoji || '📦',
         color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#64748B',
+        // le categorie salvate prima di questa funzione: "Risparmio" conta come risparmio
+        savings: c.savings === undefined ? /risparm/i.test(String(c.name || '')) : !!c.savings,
       })),
       months,
+      savings: {
+        moves: (s.savings && Array.isArray(s.savings.moves) ? s.savings.moves : [])
+          .filter(m => m && (m.type === 'in' || m.type === 'out') && Number(m.amount) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(m.date))
+          .map(m => ({
+            id: String(m.id || uid()), type: m.type, amount: round2(Number(m.amount)), date: m.date,
+            note: String(m.note || '').slice(0, 60),
+            toMonth: /^\d{4}-\d{2}$/.test(m.toMonth) ? m.toMonth : null,
+          })),
+      },
+      recurring: (Array.isArray(s.recurring) ? s.recurring : [])
+        .filter(r => r && Number(r.amount) > 0 && r.catId && /^\d{4}-\d{2}$/.test(r.start))
+        .map(r => ({ id: String(r.id || uid()), name: String(r.name || 'Spesa fissa').slice(0, 40), amount: round2(Number(r.amount)), catId: String(r.catId), start: r.start })),
       updatedAt: Number(s.updatedAt) || 0,
     };
   }
@@ -762,6 +861,8 @@
   };
   const prefs = { ...prefsDefault, ...(readLS(PREFS_KEY) || {}) };
   if (!CHART_TYPES[prefs.chartType]) prefs.chartType = 'doughnut';
+  // Nuova grafica nero e oro: la prima volta parte in modalità scura
+  if (prefs.themeV !== 2) { prefs.theme = 'dark'; prefs.themeV = 2; }
   if (!['year', 'months', 'all'].includes(prefs.repMode)) prefs.repMode = 'year';
   if (!Number.isInteger(prefs.repYear)) prefs.repYear = prefsDefault.repYear;
   if (!Array.isArray(prefs.repMonths)) prefs.repMonths = prefsDefault.repMonths;
@@ -898,7 +999,7 @@
   let lastStatus = '';
   function renderSummary() {
     const t = saldo(), s = spent(), r = remaining();
-    const over = r < 0;
+    const over = t > 0 && r < 0;
     const label = monthLabel(curMonth);
     $('#monthName').textContent = label;
     document.querySelectorAll('.cur-month').forEach(el => el.textContent = label);
@@ -919,12 +1020,14 @@
     const st = $('#status');
     let cls = '', html;
     const prevKey = shiftMonth(curMonth, -1), prev = data.months[prevKey];
-    if (t <= 0 && s <= 0) {
+    if (t <= 0) {
       html = `<span>👋 Inserisci il saldo di ${monthOnly(curMonth)} per iniziare</span>`;
-      if (prev && prev.saldo > 0) html += `<button class="mini-btn" id="copyPrev">Usa ${fmtEUR(prev.saldo)} come a ${monthOnly(prevKey)}</button>`;
+      if (prev && prev.saldo > 0) html += `<button class="mini-btn" id="copyPrev">Usa ${fmtEUR(prev.saldo)} come ${aMonth(prevKey)}</button>`;
     } else if (over) { cls = 'danger'; html = `<span>⚠️ Attenzione: hai superato il saldo di ${fmtEUR(-r)}</span>`; }
     else if (r === 0) html = '<span>🧮 Hai usato tutto il saldo del mese</span>';
-    else html = `<span>💡 Hai speso il ${fmtPct(s / t * 100)} del saldo: ti restano ${fmtEUR(r)}</span>`;
+    else if (curMonth < monthKey()) html = `<span>🐷 Mese chiuso: ${fmtEUR(r)} non spesi sono andati nei risparmi</span>`;
+    else if (curMonth > monthKey()) html = `<span>💡 Hai speso il ${fmtPct(s / t * 100)} del saldo: ti restano ${fmtEUR(r)}</span>`;
+    else html = `<span>💡 Hai speso il ${fmtPct(s / t * 100)} del saldo: ti restano ${fmtEUR(r)}, che a fine mese andranno nei risparmi</span>`;
     st.className = 'status ' + cls;
     st.innerHTML = html;
     $('#copyPrev')?.addEventListener('click', () => {
@@ -975,7 +1078,7 @@
     if (!el) return;
     const t = saldo(), a = amountOf(c);
     const pct = t > 0 ? a / t * 100 : 0;
-    $('.cat-pct', el).innerHTML = t > 0 ? `<b>${fmtPct(pct)}</b> del saldo` : 'Imposta il saldo del mese';
+    $('.cat-pct', el).innerHTML = (t > 0 ? `<b>${fmtPct(pct)}</b> del saldo` : 'Imposta il saldo del mese') + (c.savings ? ' · 🐷 nei risparmi' : '') + (data.recurring.some(r => r.catId === c.id) ? ' · 🔁 fissa' : '');
     $('.bar span', el).style.width = Math.min(100, pct) + '%';
 
     const input = $('.amount', el);
@@ -1055,7 +1158,7 @@
   function openAddSheet(cat) {
     const cur = amountOf(cat);
     openSheet(`
-      <div class="preview" style="--c:${cat.color}"><div class="cat-emoji">${esc(cat.emoji)}</div><div><b>${esc(cat.name)}</b><div style="color:var(--muted);font-size:14px">Speso a ${monthOnly(curMonth)}: ${fmtEUR(cur)}</div></div></div>
+      <div class="preview" style="--c:${cat.color}"><div class="cat-emoji">${esc(cat.emoji)}</div><div><b>${esc(cat.name)}</b><div style="color:var(--muted);font-size:14px">Speso ${aMonth(curMonth)}: ${fmtEUR(cur)}</div></div></div>
       <div class="field">
         <label for="fAdd">Nuova spesa da aggiungere</label>
         <input class="text-input big" id="fAdd" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
@@ -1104,6 +1207,10 @@
         <div class="grid-pick" id="colorGrid">${COLORS.map(c => `<button type="button" class="swatch" style="--sw:${c}" data-c="${c}" aria-label="Colore ${c}"></button>`).join('')}</div>
         <div class="custom-row"><span style="font-size:14px;color:var(--muted);font-weight:600;flex:1">Colore personalizzato</span><input type="color" class="color-input" id="fColor"></div>
       </div>
+      <label class="toggle-row" style="margin:0 0 16px">
+        <span>🐷 Conta come risparmio<br><small style="color:var(--muted);font-weight:500">Le cifre di questa categoria entrano nel conto risparmi</small></span>
+        <span class="switch"><input type="checkbox" id="fSav"><span></span></span>
+      </label>
       <div class="sheet-actions">
         <button class="btn" data-close>Annulla</button>
         <button class="btn primary" id="saveCat">${isNew ? 'Aggiungi' : 'Salva'}</button>
@@ -1113,6 +1220,8 @@
     const fName = $('#fName'), fEmoji = $('#fEmoji'), fColor = $('#fColor');
     fName.value = draft.name;
     fColor.value = draft.color;
+    $('#fSav').checked = !!draft.savings;
+    $('#fSav').addEventListener('change', e => { draft.savings = e.target.checked; });
     function syncPreview() {
       $('#pv').style.setProperty('--c', draft.color);
       $('#pvEmoji').textContent = draft.emoji;
@@ -1132,10 +1241,10 @@
       const name = fName.value.trim();
       if (!name) { fName.focus(); toast('Inserisci un nome per la categoria'); return; }
       if (isNew) {
-        data.categories.push({ id: uid(), name, emoji: draft.emoji, color: draft.color });
+        data.categories.push({ id: uid(), name, emoji: draft.emoji, color: draft.color, savings: !!draft.savings });
         toast(`Categoria "${name}" aggiunta`);
       } else {
-        Object.assign(cat, { name, emoji: draft.emoji, color: draft.color });
+        Object.assign(cat, { name, emoji: draft.emoji, color: draft.color, savings: !!draft.savings });
         toast('Categoria aggiornata');
       }
       commit(); closeSheet(); renderList(); refresh(false);
@@ -1144,11 +1253,12 @@
     $('#delCat')?.addEventListener('click', () => {
       confirmSheet({
         title: `Eliminare "${esc(cat.name)}"?`,
-        text: 'La categoria e le sue spese verranno rimosse da tutti i mesi. Le cifre torneranno nel saldo rimasto.',
+        text: 'La categoria, le sue spese fisse e le sue spese verranno rimosse da tutti i mesi. Le cifre torneranno nel saldo rimasto.',
         ok: 'Elimina',
         onOk: () => {
           data.categories = data.categories.filter(c => c.id !== cat.id);
           Object.values(data.months).forEach(m => delete m.spese[cat.id]);
+          data.recurring = data.recurring.filter(r => r.catId !== cat.id);
           commit(); renderList(); refresh(false); toast('Categoria eliminata');
         },
       });
@@ -1161,7 +1271,7 @@
       <p>Non si può annullare.</p>
       <div style="display:grid;gap:10px">
         <button class="btn" id="resetMonth" style="box-shadow:none;background:var(--surface-2)">Azzera solo ${monthLabel(curMonth)}</button>
-        <button class="btn solid-danger" id="resetAll" style="background:var(--danger);color:#fff">Cancella tutti i mesi e le categorie</button>
+        <button class="btn solid-danger" id="resetAll" style="background:var(--danger);color:#fff">Cancella tutto: mesi, categorie e risparmi</button>
         <button class="btn" data-close style="box-shadow:none">Annulla</button>
       </div>`);
     $('#resetMonth').addEventListener('click', () => {
@@ -1380,7 +1490,7 @@
   function renderExtras(items, h) {
     if (typeof Chart !== 'undefined') {
       const em = $('#chartEmpty');
-      em.innerHTML = `<div>📊<br>Nessuna spesa a ${monthOnly(curMonth)}.<br>Inserisci le cifre nella scheda <b>Spese</b>.</div>`;
+      em.innerHTML = `<div>📊<br>Nessuna spesa ${aMonth(curMonth)}.<br>Inserisci le cifre nella scheda <b>Spese</b>.</div>`;
       em.classList.toggle('show', !items.some(i => i.value > 0));
       const em2 = $('#chart2Empty');
       em2.innerHTML = '<div>📈<br>L\'andamento comparirà quando inserirai saldo e spese.</div>';
@@ -1756,12 +1866,334 @@
     offerFile(`resoconto-${name}.csv`, '﻿' + rows.map(r => r.join(';')).join('\r\n'));
   });
 
+  // ---------- Risparmi ----------
+  let chart4 = null;
+  const savVisible = () => $('#tab-savings').classList.contains('active');
+  const todayISO = () => { const d = new Date(); return `${monthKey(d)}-${String(d.getDate()).padStart(2, '0')}`; };
+  const lastDay = k => { const d = keyToDate(k); return `${k}-${String(new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()).padStart(2, '0')}`; };
+  const fmtDate = iso => new Date(iso + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+  const savedInCats = m => round2(data.categories.filter(c => c.savings).reduce((a, c) => a + (m.spese[c.id] || 0), 0));
+
+  // Tutti i movimenti del conto: avanzi dei mesi finiti, categorie "risparmio", versamenti e prelievi
+  function savingsLedger() {
+    const now = monthKey();
+    const list = [];
+    for (const k of Object.keys(data.months).sort()) {
+      if (k > now) continue;               // i mesi futuri non contano ancora
+      const m = data.months[k];
+      const inCats = savedInCats(m);
+      if (inCats > 0) list.push({ k, date: k < now ? lastDay(k) : todayISO(), amount: inCats, label: `Messi da parte ${aMonth(k)}`, sub: `Categorie risparmio · ${monthLabel(k)}` });
+      if (k < now) {
+        const rem = round2(m.saldo - spentOf(m));
+        if (rem > 0) list.push({ k, date: lastDay(k), amount: rem, label: `Avanzo di ${monthOnly(k)}`, sub: `Saldo non speso · ${monthLabel(k)}` });
+      }
+    }
+    for (const mv of data.savings.moves) {
+      const out = mv.type === 'out';
+      list.push({
+        id: mv.id, date: mv.date, amount: out ? -mv.amount : mv.amount,
+        label: mv.note || (out ? 'Prelievo' : 'Versamento'),
+        sub: `${out ? 'Prelievo' : 'Versamento'} del ${fmtDate(mv.date)}${mv.toMonth ? ' · aggiunto al saldo di ' + monthLabel(mv.toMonth) : ''}`,
+      });
+    }
+    list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    return { list, total: round2(list.reduce((a, e) => a + e.amount, 0)) };
+  }
+
+  function renderSavings() {
+    if (!savVisible()) return;
+    const { list, total } = savingsLedger();
+    $('#savTotal').textContent = fmtSigned(total);
+    $('#savSub').textContent = list.length
+      ? `Conto unico di tutti i mesi · dal ${fmtDate(list[0].date)}`
+      : 'Conto unico di tutti i mesi: si riempie da solo a fine mese';
+    $('#savOut').disabled = total <= 0;
+
+    const now = monthKey(), m = data.months[now];
+    const rem = m ? round2(m.saldo - spentOf(m)) : 0;
+    $('#savNext').innerHTML = rem > 0
+      ? `⏳ Se non spendi altro, a fine ${monthOnly(now)} entreranno qui <b>${fmtEUR(rem)}</b>`
+      : m && m.saldo > 0 ? `⏳ Hai già usato tutto il saldo di ${monthOnly(now)}: a fine mese non entrerà nulla`
+      : `⏳ Inserisci il saldo di ${monthOnly(now)}: a fine mese quello che avanza entrerà qui`;
+
+    const ins = round2(list.filter(e => e.amount > 0).reduce((a, e) => a + e.amount, 0));
+    const outs = round2(-list.filter(e => e.amount < 0).reduce((a, e) => a + e.amount, 0));
+    $('#savTiles').innerHTML = `
+      <div class="tile"><div class="k">Entrate totali</div><div class="v" style="color:var(--success)">${fmtEUR(ins)}</div><div class="p">avanzi, categorie e versamenti</div></div>
+      <div class="tile"><div class="k">Prelievi totali</div><div class="v" style="color:var(--danger)">${fmtEUR(outs)}</div><div class="p">soldi ripresi dal conto</div></div>`;
+
+    $('#savRows').innerHTML = list.length ? [...list].reverse().map(e => `
+      <button class="row" ${e.id ? `data-mv="${e.id}"` : `data-k="${e.k}"`}>
+        <span><b style="text-transform:none">${esc(e.label)}</b></span>
+        <span class="r ${e.amount < 0 ? 'minus' : 'plus'}">${e.amount < 0 ? '− ' + fmtEUR(-e.amount) : '+ ' + fmtEUR(e.amount)}</span>
+        <small>${esc(e.sub)}</small>
+      </button>`).join('')
+      : '<p class="note" style="margin:4px 2px">Ancora nessun movimento. Il primo arriverà alla fine di questo mese, oppure tocca ＋ Versa per aggiungere i risparmi che hai già.</p>';
+
+    buildSavingsChart(list);
+  }
+
+  function buildSavingsChart(list) {
+    if (chart4) { chart4.destroy(); chart4 = null; }
+    const em = $('#chart4Empty');
+    if (typeof Chart === 'undefined') {
+      em.innerHTML = '<div>📡<br>Impossibile caricare la libreria dei grafici.<br>Controlla la connessione a Internet e ricarica la pagina.</div>';
+      em.classList.add('show');
+      return;
+    }
+    em.innerHTML = '<div>🐷<br>Il grafico comparirà con il primo movimento.</div>';
+    em.classList.toggle('show', !list.length);
+    if (!list.length) return;
+    // saldo del conto alla fine di ogni mese (al massimo gli ultimi 24)
+    const months = [];
+    const lastMove = list[list.length - 1].date.slice(0, 7);
+    const end = monthKey() > lastMove ? monthKey() : lastMove;
+    for (let k = list[0].date.slice(0, 7); k <= end; k = shiftMonth(k, 1)) months.push(k);
+    const shown = months.slice(-24);
+    const bal = shown.map(k => round2(list.filter(e => e.date.slice(0, 7) <= k).reduce((a, e) => a + e.amount, 0)));
+    const save = cssVar('--save'), text = cssVar('--text'), grid = cssVar('--grid');
+    chart4 = new Chart($('#chart4'), {
+      type: 'line',
+      data: {
+        labels: shown.map(monthShort),
+        datasets: [{
+          label: 'Risparmio', data: bal, borderColor: save, backgroundColor: hexA(save, .16), fill: true,
+          borderWidth: 2.5, tension: .3, pointRadius: shown.length > 12 ? 0 : 3, pointHoverRadius: 6, pointBackgroundColor: save,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 500 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...tooltipBase(), callbacks: { title: items => monthLabel(shown[items[0].dataIndex]), label: ctx => ` Nel conto: ${fmtSigned(ctx.raw)}` } },
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: text, font: { weight: '600' }, maxRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true, grid: { color: grid }, border: { display: false }, ticks: { callback: v => fmtShort(v), maxTicksLimit: 5 } },
+        },
+      },
+    });
+  }
+
+  function openSavingsSheet(type) {
+    const out = type === 'out';
+    const total = savingsLedger().total;
+    const now = monthKey();
+    openSheet(`
+      <h3>${out ? 'Preleva dai risparmi' : 'Versa nei risparmi'}</h3>
+      <p>${out ? `Disponibili: <b>${fmtEUR(total)}</b>` : 'Aggiungi soldi che hai già da parte, per esempio i risparmi di partenza.'}</p>
+      <div class="field">
+        <label for="svAmt">Importo</label>
+        <input class="text-input big" id="svAmt" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
+      </div>
+      <div class="field">
+        <label for="svNote">${out ? 'Per cosa? (facoltativo)' : 'Descrizione (facoltativa)'}</label>
+        <input class="text-input" id="svNote" maxlength="60" autocomplete="off" placeholder="${out ? 'Es. vacanza, regalo' : 'Es. risparmi che avevo già'}">
+      </div>
+      ${out ? `<label class="toggle-row" style="margin:0 0 16px">
+        <span>Aggiungi al saldo di ${monthLabel(now)}<br><small style="color:var(--muted);font-weight:500">Così puoi spenderli e segnarli nelle categorie del mese</small></span>
+        <span class="switch"><input type="checkbox" id="svToMonth" checked><span></span></span>
+      </label>` : ''}
+      <div class="sheet-actions">
+        <button class="btn" data-close>Annulla</button>
+        <button class="btn primary" id="svOk">${out ? 'Preleva' : 'Versa'}</button>
+      </div>`);
+    const f = $('#svAmt');
+    setTimeout(() => f.focus(), 300);
+    const go = () => {
+      const v = parseNum(f.value);
+      if (!v) { f.focus(); toast('Scrivi un importo'); return; }
+      if (out && v > total + 0.001) { toast(`Puoi prelevare al massimo ${fmtEUR(total)}`); return; }
+      const toMonth = out && $('#svToMonth').checked ? now : null;
+      data.savings.moves.push({ id: uid(), type, amount: v, date: todayISO(), note: $('#svNote').value.trim().slice(0, 60), toMonth });
+      if (toMonth) {
+        if (!data.months[now]) data.months[now] = { saldo: 0, spese: {} };
+        data.months[now].saldo = round2(data.months[now].saldo + v);
+      }
+      commit(); closeSheet(); refresh();
+      toast(!out ? `${fmtEUR(v)} versati nei risparmi` : toMonth ? `${fmtEUR(v)} aggiunti al saldo di ${monthOnly(now)}` : `${fmtEUR(v)} prelevati dai risparmi`);
+    };
+    $('#svOk').addEventListener('click', go);
+    f.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  }
+
+  function openMoveSheet(id) {
+    const mv = data.savings.moves.find(x => x.id === id);
+    if (!mv) return;
+    const out = mv.type === 'out';
+    confirmSheet({
+      title: `Eliminare questo ${out ? 'prelievo' : 'versamento'}?`,
+      text: `${esc(mv.note || (out ? 'Prelievo' : 'Versamento'))} di ${fmtEUR(mv.amount)} del ${fmtDate(mv.date)}.${mv.toMonth ? ` Verrà tolto anche dal saldo di ${monthLabel(mv.toMonth)}.` : ''}`,
+      ok: 'Elimina',
+      onOk: () => {
+        data.savings.moves = data.savings.moves.filter(x => x.id !== id);
+        if (mv.toMonth && data.months[mv.toMonth]) data.months[mv.toMonth].saldo = Math.max(0, round2(data.months[mv.toMonth].saldo - mv.amount));
+        commit(); refresh(); toast('Movimento eliminato');
+      },
+    });
+  }
+
+  $('#savOut').addEventListener('click', () => openSavingsSheet('out'));
+  $('#savIn').addEventListener('click', () => openSavingsSheet('in'));
+  $('#savRows').addEventListener('click', e => {
+    const mv = e.target.closest('[data-mv]'), mk = e.target.closest('[data-k]');
+    if (mv) openMoveSheet(mv.dataset.mv);
+    else if (mk) openMonth(mk.dataset.k);
+  });
+
+  // ---------- Spese fisse (scalate da sole ogni mese) ----------
+  let recurringDone = false;
+
+  // Scala ogni spesa fissa una volta per mese, dal mese in cui parte fino a quello attuale.
+  // I mesi in cui è già stata scalata sono segnati in "applied", così non viene mai contata due volte.
+  function applyRecurring() {
+    const now = monthKey(), done = [];
+    for (const r of data.recurring) {
+      if (!catById(r.catId)) continue;
+      for (let k = r.start; k <= now; k = shiftMonth(k, 1)) {
+        const m = data.months[k] || (data.months[k] = { saldo: 0, spese: {} });
+        if (!m.applied) m.applied = [];
+        if (m.applied.includes(r.id)) continue;
+        m.spese[r.catId] = round2((m.spese[r.catId] || 0) + r.amount);
+        m.applied.push(r.id);
+        done.push(r.name);
+      }
+    }
+    if (done.length) commit();
+    return [...new Set(done)];
+  }
+  function runRecurringOnce() {
+    if (recurringDone) return;
+    recurringDone = true;
+    const names = applyRecurring();
+    if (names.length) { refresh(); setTimeout(() => toast(`🔁 Spese fisse scalate: ${names.join(', ')}`), 600); }
+  }
+  // Se l'app resta aperta e arriva un mese nuovo, scala le spese fisse quando torni a guardarla
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !recurringDone) return;
+    const names = applyRecurring();
+    if (names.length) { refresh(); toast(`🔁 Spese fisse scalate: ${names.join(', ')}`); }
+  });
+
+  function renderRecurring() {
+    const el = $('#recRows');
+    const now = monthKey(), m = data.months[now];
+    const list = data.recurring.filter(r => catById(r.catId));
+    if (!list.length) {
+      el.innerHTML = '<p class="note" style="margin:4px 2px">Abbonamenti, affitto, rate, palestra: aggiungili qui una volta e ogni mese verranno scalati da soli dalla categoria che scegli.</p>';
+      return;
+    }
+    const tot = round2(list.reduce((a, r) => a + r.amount, 0));
+    el.innerHTML = list.map(r => {
+      const c = catById(r.catId);
+      const applied = m && m.applied && m.applied.includes(r.id);
+      const when = r.start > now ? 'parte da ' + monthLabel(r.start) : applied ? '✓ già scalata ' + aMonth(now) : 'ogni mese';
+      return `<button class="row" data-rec="${r.id}">
+        <span><b style="text-transform:none">${esc(r.name)}</b></span>
+        <span class="r">${fmtEUR(r.amount)}</span>
+        <small>${esc(c.emoji + ' ' + c.name)} · ${when}</small>
+      </button>`;
+    }).join('') + `<div class="rec-foot"><span>Totale fisso al mese</span><span>${fmtEUR(tot)}</span></div>`;
+  }
+  $('#recRows').addEventListener('click', e => {
+    const b = e.target.closest('[data-rec]');
+    if (b) openRecSheet(data.recurring.find(r => r.id === b.dataset.rec));
+  });
+  $('#addRecBtn').addEventListener('click', () => openRecSheet(null));
+
+  function openRecSheet(rec) {
+    if (!data.categories.length) { toast('Prima crea una categoria'); return; }
+    const isNew = !rec, now = monthKey();
+    const defCat = (data.categories.find(c => /abbonam/i.test(c.name)) || data.categories[0]).id;
+    openSheet(`
+      <h3>${isNew ? 'Nuova spesa fissa' : 'Modifica spesa fissa'}</h3>
+      <p>${isNew ? 'Ogni mese questa cifra verrà scalata da sola dalla categoria che scegli.' : `Le modifiche valgono da ${monthOnly(now)} in poi; i mesi passati restano com'erano.`}</p>
+      <div class="field">
+        <label for="rName">Nome</label>
+        <input class="text-input" id="rName" maxlength="40" placeholder="Es. Netflix, affitto, palestra" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="rAmt">Importo al mese</label>
+        <input class="text-input big" id="rAmt" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
+      </div>
+      <div class="field">
+        <label for="rCat">Categoria</label>
+        <select class="text-input" id="rCat">${data.categories.map(c => `<option value="${c.id}">${esc(c.emoji + ' ' + c.name)}</option>`).join('')}</select>
+      </div>
+      ${isNew ? `<label class="toggle-row" style="margin:0 0 16px">
+        <span>Scala già ${aMonth(now)}<br><small style="color:var(--muted);font-weight:500">Se la togli, partirà dal mese prossimo</small></span>
+        <span class="switch"><input type="checkbox" id="rNow" checked><span></span></span>
+      </label>` : ''}
+      <div class="sheet-actions">
+        <button class="btn" data-close>Annulla</button>
+        <button class="btn primary" id="rSave">${isNew ? 'Aggiungi' : 'Salva'}</button>
+      </div>
+      ${isNew ? '' : '<button class="del-link" id="rDel">🗑️ Elimina spesa fissa</button>'}`);
+    $('#rName').value = rec ? rec.name : '';
+    $('#rAmt').value = rec ? fmtNum(rec.amount) : '';
+    $('#rCat').value = rec ? rec.catId : defCat;
+    if (isNew) setTimeout(() => $('#rName').focus(), 300);
+
+    $('#rSave').addEventListener('click', () => {
+      const name = $('#rName').value.trim(), amount = parseNum($('#rAmt').value), catId = $('#rCat').value;
+      if (!name) { $('#rName').focus(); toast('Scrivi il nome della spesa fissa'); return; }
+      if (!amount) { $('#rAmt').focus(); toast('Scrivi l\'importo'); return; }
+      if (isNew) {
+        const start = $('#rNow').checked ? now : shiftMonth(now, 1);
+        data.recurring.push({ id: uid(), name, amount, catId, start });
+        applyRecurring();
+        toast(start === now ? `${name}: ${fmtEUR(amount)} scalati ${aMonth(now)}` : `${name} partirà da ${monthLabel(start)}`);
+      } else {
+        // se questo mese è già stata scalata, aggiorna anche la cifra del mese
+        const m = data.months[now];
+        if (m && m.applied && m.applied.includes(rec.id)) {
+          m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
+          if (!m.spese[rec.catId]) delete m.spese[rec.catId];
+          m.spese[catId] = round2((m.spese[catId] || 0) + amount);
+        }
+        Object.assign(rec, { name, amount, catId });
+        toast('Spesa fissa aggiornata');
+      }
+      commit(); closeSheet(); refresh();
+    });
+    $('#rDel')?.addEventListener('click', () => openRecDelete(rec));
+  }
+
+  function openRecDelete(rec) {
+    const now = monthKey(), m = data.months[now];
+    const applied = !!(m && m.applied && m.applied.includes(rec.id));
+    const remove = alsoNow => {
+      if (alsoNow && applied) {
+        m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
+        if (!m.spese[rec.catId]) delete m.spese[rec.catId];
+        m.applied = m.applied.filter(x => x !== rec.id);
+      }
+      data.recurring = data.recurring.filter(r => r.id !== rec.id);
+      commit(); closeSheet(); refresh(); toast('Spesa fissa eliminata');
+    };
+    openSheet(`<h3>Eliminare "${esc(rec.name)}"?</h3>
+      <p>Dai prossimi mesi non verrà più scalata. I mesi passati restano com'erano.</p>
+      <div style="display:grid;gap:10px">
+        ${applied
+          ? `<button class="btn solid-danger" id="rDelNow" style="background:var(--danger);color:#fff">Elimina e togli anche da ${monthOnly(now)}</button>
+             <button class="btn" id="rDelNext" style="box-shadow:none;background:var(--surface-2)">Elimina, ma lascia ${monthOnly(now)} com'è</button>`
+          : '<button class="btn solid-danger" id="rDelNext" style="background:var(--danger);color:#fff">Elimina</button>'}
+        <button class="btn" data-close style="box-shadow:none">Annulla</button>
+      </div>`);
+    $('#rDelNow')?.addEventListener('click', () => remove(true));
+    $('#rDelNext').addEventListener('click', () => remove(false));
+  }
+
   // ---------- Schede ----------
-  function setTab(tab) {
-    prefs.tab = tab;
+  function setTab(tab) {    prefs.tab = tab;
     document.querySelectorAll('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
     document.querySelectorAll('.tabbar button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
-    document.body.classList.toggle('rep', tab === 'report');
+    document.body.classList.toggle('rep', tab === 'report' || tab === 'savings');
+    $('#repTitle').textContent = tab === 'savings' ? 'Risparmi' : 'Resoconto';
+    if (tab === 'savings') renderSavings();
+    else if (chart4) { chart4.destroy(); chart4 = null; }
     if (tab === 'charts') buildCharts();
     else {
       if (chart) { chart.destroy(); chart = null; }
@@ -1780,7 +2212,7 @@
   new IntersectionObserver(([en]) => $('#mini').classList.toggle('show', !en.isIntersecting), { threshold: 0 }).observe($('#hero'));
 
   // ---------- Aggiornamento globale ----------
-  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); }
+  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); renderSavings(); renderRecurring(); }
   function refresh() { data.categories.forEach(updateCard); refreshSummaryAndCharts(); }
 
   // ---------- Avvio ----------
@@ -1789,9 +2221,25 @@
   syncChips();
   renderList();
   renderSummary();
-  setTab(['charts', 'report'].includes(prefs.tab) ? prefs.tab : 'budget');
+  renderRecurring();
+  setTab(['charts', 'report', 'savings'].includes(prefs.tab) ? prefs.tab : 'budget');
+  // Alla prima apertura di un mese nuovo: avvisa di quanto è andato nei risparmi
+  (() => {
+    const now = monthKey(), last = prefs.lastOpenMonth;
+    if (/^\d{4}-\d{2}$/.test(last || '') && last < now) {
+      let sum = 0;
+      for (let k = last; k < now; k = shiftMonth(k, 1)) {
+        const m = data.months[k];
+        if (m) { const r = round2(m.saldo - spentOf(m)); if (r > 0) sum += r; }
+      }
+      if (sum > 0) setTimeout(() => toast(`🐷 ${fmtEUR(sum)} non spesi sono andati nei risparmi`), 900);
+    }
+    prefs.lastOpenMonth = now;
+    savePrefs();
+  })();
   if (document.fonts) document.fonts.ready.then(() => { chart && chart.update(); chart2 && chart2.update(); chart3 && chart3.update(); });
   writeLS(DATA_KEY, data);
+  runRecurringOnce();
   // Funzionamento offline e installazione come app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => { /* l'app funziona anche senza */ });
