@@ -1383,7 +1383,6 @@
       e.preventDefault();
       const row = grip.closest('.ord-row');
       row.classList.add('dragging');
-      grip.setPointerCapture(e.pointerId);
       const half = el => el.getBoundingClientRect().top + el.offsetHeight / 2;
       const move = ev => {
         const y = ev.clientY;
@@ -1397,14 +1396,14 @@
       };
       const up = () => {
         row.classList.remove('dragging');
-        grip.removeEventListener('pointermove', move);
-        grip.removeEventListener('pointerup', up);
-        grip.removeEventListener('pointercancel', up);
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', up);
         syncArrows();
       };
-      grip.addEventListener('pointermove', move);
-      grip.addEventListener('pointerup', up);
-      grip.addEventListener('pointercancel', up);
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
     });
     $('#ordOk').addEventListener('click', () => {
       const cats = [...listEl.children].map(r => catById(r.dataset.id)).filter(Boolean);
