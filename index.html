@@ -943,9 +943,142 @@
 
   // Promemoria: se l'ultimo backup su file ha più di 30 giorni, lo dice il pulsante in alto
   function updateBackupLabel() {
+    if (gistOn()) { $('#sync').textContent = gist.error === 'auth' ? '⚠️ Backup su GitHub da riattivare' : '☁️ Backup automatico su GitHub'; return; }
     const hasData = Object.values(data.months).some(m => m.saldo > 0 || spentOf(m) > 0);
     const late = hasData && Date.now() - (readLS(BACKUP_KEY) || 0) > 30 * 864e5;
     $('#sync').textContent = late ? '💾 Fai un backup dei dati' : '📱 Salvato su questo dispositivo';
+  }
+
+  // ---------- Backup automatico su GitHub (gist segreto, a ogni chiusura dell'app) ----------
+  const GIST_KEY = 'budget-app-gist';
+  const GIST_FILE = 'budget-backup.json';
+  const GIST_DESC = 'Il mio Budget — backup automatico';
+  const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=Il%20mio%20Budget';
+  let gist = readLS(GIST_KEY) || {};   // { token, id, user, sentAt: updatedAt dei dati inviati, at: quando, error }
+  const saveGist = () => writeLS(GIST_KEY, gist);
+  const gistOn = () => !!(gist.token && gist.id);
+  const backupJSON = () => JSON.stringify({ app: 'budget', version: 2, ...data });
+  const fmtWhen = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  async function gh(path, opts = {}) {
+    const res = await fetch('https://api.github.com' + path, {
+      ...opts,
+      headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + gist.token, ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+    });
+    if (!res.ok) { const e = new Error('GitHub ' + res.status); e.status = res.status; throw e; }
+    return res.json();
+  }
+
+  let gistBusy = false;
+  async function gistUpload(closing = false) {
+    if (!gistOn() || gistBusy || gist.sentAt === data.updatedAt) return;
+    gistBusy = true;
+    const sent = data.updatedAt, body = JSON.stringify({ files: { [GIST_FILE]: { content: backupJSON() } } });
+    try {
+      // keepalive: l'invio continua anche se l'app viene chiusa subito dopo (fino a 64 KB).
+      // Se il browser non lo permette, l'invio riparte alla prossima apertura.
+      await gh('/gists/' + gist.id, { method: 'PATCH', body, keepalive: closing && body.length < 60000 });
+      Object.assign(gist, { sentAt: sent, at: Date.now(), error: null });
+    } catch (e) {
+      gist.error = [401, 403, 404].includes(e.status) ? 'auth' : 'net';   // 'net': riprova alla prossima apertura o chiusura
+    } finally {
+      gistBusy = false;
+      saveGist(); updateBackupLabel();
+    }
+  }
+  // "Chiudere l'app" sul telefono = uscire o cambiare app: la pagina diventa nascosta
+  const onAppClose = () => { clearTimeout(saveTimer); saveLocal(); gistUpload(true); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') onAppClose(); });
+  window.addEventListener('pagehide', onAppClose);
+
+  async function gistRestore(justFound = false) {
+    let imported = null, g = null;
+    try {
+      g = await gh('/gists/' + gist.id);
+      const f = g.files[GIST_FILE];
+      imported = normalizeData(JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content));
+    } catch { imported = null; }
+    if (!imported) { toast(justFound ? '☁️ Backup automatico attivato' : 'Il backup su GitHub non è leggibile'); return; }
+    const n = Object.keys(imported.months).length;
+    confirmSheet({
+      title: justFound ? 'Hai già un backup su GitHub' : 'Ripristinare il backup da GitHub?',
+      text: `Contiene i dati del ${esc(fmtWhen(imported.updatedAt || g.updated_at))} (${imported.categories.length} categorie, ${n === 1 ? '1 mese' : n + ' mesi'}) e sostituirà quelli di questo dispositivo, che restano comunque tra le copie automatiche.${justFound ? ' Se annulli, alla prossima chiusura il backup su GitHub verrà sostituito dai dati di questo dispositivo.' : ''}`,
+      ok: 'Carica',
+      onOk: () => {
+        addSnapshot(JSON.parse(JSON.stringify(data)), 'Prima del ripristino da GitHub');
+        data = imported;
+        commit(); renderList(); refresh(); toast('Backup caricato da GitHub');
+      },
+    });
+  }
+
+  function openGistSheet() {
+    if (gistOn()) {
+      const state = gist.error === 'auth' ? '<b style="color:var(--danger)">Il codice di accesso non funziona più</b>: disattiva il backup e riattivalo con un codice nuovo.'
+        : gist.error === 'net' ? 'L\'ultimo invio non è riuscito, forse mancava Internet: riprova da solo.'
+        : '<b>Attivo.</b>';
+      openSheet(`<h3>☁️ Backup automatico su GitHub</h3>
+        <p>${state} Ogni volta che chiudi l'app, i dati vengono salvati sul tuo account GitHub <b>${esc(gist.user || '')}</b>.
+        Ultimo backup: <b>${gist.at ? esc(fmtWhen(gist.at)) : 'non ancora'}</b>.</p>
+        <div style="display:grid;gap:10px">
+          <button class="btn primary" id="gNow">⬆️ Fai il backup adesso</button>
+          <button class="btn" id="gRestore" style="box-shadow:none;background:var(--surface-2)">⬇️ Ripristina da GitHub</button>
+          <button class="btn" data-close style="box-shadow:none">Chiudi</button>
+        </div>
+        <button class="del-link" id="gOff">Disattiva il backup su GitHub</button>`);
+      $('#gNow').addEventListener('click', async () => {
+        gist.sentAt = null;
+        await gistUpload();
+        toast(gist.error ? 'Backup non riuscito' : '☁️ Backup salvato su GitHub');
+        openGistSheet();
+      });
+      $('#gRestore').addEventListener('click', () => { closeSheet(); gistRestore(); });
+      $('#gOff').addEventListener('click', () => confirmSheet({
+        title: 'Disattivare il backup su GitHub?',
+        text: 'L\'app smette di salvare i dati su GitHub e dimentica il codice di accesso. L\'ultimo backup resta sul tuo account.',
+        ok: 'Disattiva',
+        onOk: () => { gist = {}; saveGist(); updateBackupLabel(); toast('Backup su GitHub disattivato'); },
+      }));
+      return;
+    }
+    openSheet(`<h3>☁️ Backup automatico su GitHub</h3>
+      <p>Ogni volta che chiudi l'app, i dati vengono salvati in un gist <b>segreto</b> del tuo account GitHub: non compare nel profilo né nelle ricerche, ma chi avesse il suo link potrebbe aprirlo. Va preparato solo la prima volta:</p>
+      <ol style="color:var(--muted);margin:0 0 16px;padding-left:20px;display:grid;gap:6px">
+        <li>Apri <a href="${TOKEN_URL}" target="_blank" rel="noopener" style="color:var(--primary);font-weight:700">questa pagina di GitHub</a> e fai l'accesso se te lo chiede.</li>
+        <li>In <b>Expiration</b> scegli <b>No expiration</b>. La casella <b>gist</b> è già spuntata: non serve altro.</li>
+        <li>Tocca <b>Generate token</b> in fondo e copia il codice che inizia con <b>ghp_</b>.</li>
+      </ol>
+      <div class="field">
+        <label for="gTok">Codice di accesso</label>
+        <input class="text-input" id="gTok" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ghp_…">
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" data-close>Annulla</button>
+        <button class="btn primary" id="gOk">Attiva</button>
+      </div>`);
+    $('#gOk').addEventListener('click', async () => {
+      const token = $('#gTok').value.trim(), btn = $('#gOk');
+      if (!token) { $('#gTok').focus(); toast('Incolla il codice di accesso'); return; }
+      btn.disabled = true; btn.textContent = 'Controllo…';
+      gist = { token };
+      try {
+        const user = await gh('/user');
+        // Se c'è già un backup (per esempio da un telefono precedente) usa quello
+        const found = (await gh('/gists?per_page=100')).find(x => x.files && x.files[GIST_FILE]);
+        if (found) gist.id = found.id;
+        else {
+          gist.id = (await gh('/gists', { method: 'POST', body: JSON.stringify({ description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: backupJSON() } } }) })).id;
+          Object.assign(gist, { sentAt: data.updatedAt, at: Date.now() });
+        }
+        gist.user = user.login;
+        saveGist(); updateBackupLabel(); closeSheet();
+        if (found) gistRestore(true); else toast('☁️ Backup automatico attivato');
+      } catch (e) {
+        gist = {};
+        btn.disabled = false; btn.textContent = 'Attiva';
+        toast(e.status === 401 ? 'Codice non valido' : e.status === 403 || e.status === 404 ? 'Il codice non ha il permesso "gist"' : 'Controlla la connessione a Internet');
+      }
+    });
   }
 
   // ---------- Installazione come app ----------
@@ -974,14 +1107,19 @@
     const last = readLS(BACKUP_KEY);
     const when = last ? new Date(last).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     openSheet(`<h3>App e dati</h3>
-      <p>I tuoi dati sono salvati solo su questo dispositivo. ${last ? `Ultimo backup: <b>${when}</b>.` : 'Non hai ancora salvato un backup.'}
-      Salvane uno ogni tanto, così non perdi nulla se cambi telefono o cancelli i dati del browser.
+      <p>${gistOn() ? `I tuoi dati sono su questo dispositivo e, ogni volta che chiudi l'app, anche sul tuo account GitHub.`
+        : `I tuoi dati sono salvati solo su questo dispositivo. ${last ? `Ultimo backup su file: <b>${when}</b>.` : 'Non hai ancora salvato un backup.'}
+      Attiva il backup automatico su GitHub, così non perdi nulla se cambi telefono o cancelli i dati del browser.`}
       In più, ogni giorno l'app tiene da sola una copia dei dati (🕘 Copie automatiche, dentro Backup).</p>
-      <button class="btn primary" id="appBackup" style="width:100%">💾 Backup dei dati</button>
+      <div style="display:grid;gap:10px">
+        <button class="btn primary" id="appGist">☁️ Backup automatico su GitHub${gistOn() ? '' : ' · attiva'}</button>
+        <button class="btn" id="appBackup" style="box-shadow:none;background:var(--surface-2)">💾 Backup dei dati</button>
+      </div>
       ${installHTML()}
       <button class="del-link" data-close style="color:var(--muted)">Chiudi</button>`);
     bindInstall();
     $('#appBackup').addEventListener('click', () => $('#backupBtn').click());
+    $('#appGist').addEventListener('click', openGistSheet);
   }
   $('#sync').addEventListener('click', openAppSheet);
 
@@ -1619,8 +1757,10 @@
         <button class="btn primary" id="bkSave">💾 Salva il backup</button>
         <button class="btn" id="bkLoad" style="box-shadow:none;background:var(--surface-2)">📂 Carica un backup</button>
         <button class="btn" id="bkAuto" style="box-shadow:none;background:var(--surface-2)">🕘 Copie automatiche</button>
+        <button class="btn" id="bkGist" style="box-shadow:none;background:var(--surface-2)">☁️ Backup automatico su GitHub</button>
         <button class="btn" data-close style="box-shadow:none">Chiudi</button>
       </div>`);
+    $('#bkGist').addEventListener('click', openGistSheet);
     $('#bkSave').addEventListener('click', () => {
       closeSheet();
       offerFile(`budget-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'budget', version: 2, ...data }, null, 1))
@@ -2300,6 +2440,7 @@
   saveLocal();
   updateBackupLabel();
   runRecurringOnce();
+  gistUpload();   // se l'ultimo invio non era partito (app chiusa di colpo o senza Internet)
   // Funzionamento offline e installazione come app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
