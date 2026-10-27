@@ -68,6 +68,8 @@
   html, body { margin: 0; }
   /* Niente zoom: né con due dita né con il doppio tocco, l'app resta sempre della stessa dimensione */
   html { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  /* Con una finestra aperta la pagina dietro resta ferma */
+  body.locked { position: fixed; left: 0; right: 0; overflow: hidden; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -447,11 +449,11 @@
   .backdrop {
     position: fixed; inset: 0; z-index: 50; background: rgba(8, 9, 20, .45);
     display: flex; align-items: flex-end; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity .25s;
+    opacity: 0; pointer-events: none; transition: opacity .25s, background .25s;
   }
   .backdrop.open { opacity: 1; pointer-events: auto; }
   .sheet {
-    width: min(560px, 100%); max-height: 92vh; overflow-y: auto;
+    width: min(560px, 100%); max-height: 92vh; overflow-y: auto; overscroll-behavior: contain;
     background: var(--surface); border-radius: 26px 26px 0 0;
     padding: 10px max(20px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
     transform: translateY(100%); transition: transform .3s cubic-bezier(.2,.8,.2,1);
@@ -1328,7 +1330,7 @@
   $('#addCatBtn').addEventListener('click', () => openCatSheet(null));
 
   // ---------- Pannelli ----------
-  const sheet = $('#sheet');
+  const sheet = $('#sheet'), sheetPanel = $('.sheet', sheet);
   let sheetBody = $('#sheetBody');
   function openSheet(html) {
     // sostituisce il contenitore così i vecchi listener non restano attivi
@@ -1336,9 +1338,59 @@
     sheetBody.replaceWith(fresh);
     sheetBody = fresh;
     sheetBody.innerHTML = html;
+    sheetPanel.scrollTop = 0;
+    lockScroll(true);
     sheet.classList.add('open');
   }
-  function closeSheet() { sheet.classList.remove('open'); }
+  function closeSheet() { sheet.classList.remove('open'); lockScroll(false); }
+
+  // Mentre una finestra è aperta la pagina dietro non si muove
+  let lockedY = null;
+  function lockScroll(on) {
+    const b = document.body;
+    if (on && lockedY === null) {
+      lockedY = window.scrollY;
+      b.style.top = -lockedY + 'px';
+      b.classList.add('locked');
+    } else if (!on && lockedY !== null) {
+      b.classList.remove('locked');
+      b.style.top = '';
+      window.scrollTo(0, lockedY);
+      lockedY = null;
+    }
+  }
+
+  // Trascinando in giù la finestra (dalla maniglia, o quando è già in cima) si chiude
+  (() => {
+    let startY = 0, startT = 0, dy = 0, can = false, drag = false;
+    sheetPanel.addEventListener('touchstart', e => {
+      can = e.touches.length === 1 && !e.target.closest('input[type=range]') && (sheetPanel.scrollTop <= 0 || !!e.target.closest('.handle'));
+      startY = e.touches[0].clientY; startT = e.timeStamp; dy = 0; drag = false;
+    }, { passive: true });
+    sheetPanel.addEventListener('touchmove', e => {
+      if (!can) return;
+      dy = e.touches[0].clientY - startY;
+      if (!drag) {
+        if (dy < -6) can = false;        // verso l'alto: scorre il contenuto della finestra
+        if (dy < 6) return;
+        drag = true;
+        sheetPanel.style.transition = 'none';
+      }
+      e.preventDefault();
+      const d = Math.max(0, dy);
+      sheetPanel.style.transform = `translateY(${d}px)`;
+      sheet.style.background = `rgba(8, 9, 20, ${(0.45 * Math.max(0, 1 - d / sheetPanel.offsetHeight)).toFixed(3)})`;
+    }, { passive: false });
+    const end = e => {
+      if (!drag) return;
+      drag = can = false;
+      const fast = dy > 40 && dy / Math.max(1, e.timeStamp - startT) > 0.5;
+      sheetPanel.style.transition = sheetPanel.style.transform = sheet.style.background = '';
+      if (fast || dy > Math.min(120, sheetPanel.offsetHeight / 3)) closeSheet();   // altrimenti torna su
+    };
+    sheetPanel.addEventListener('touchend', end);
+    sheetPanel.addEventListener('touchcancel', end);
+  })();
   sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('[data-close]')) closeSheet(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
