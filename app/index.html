@@ -889,7 +889,63 @@
   function commit() {
     data.updatedAt = Date.now();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => writeLS(DATA_KEY, data), 300);
+    saveTimer = setTimeout(saveLocal, 300);
+  }
+
+  // ---------- Copie automatiche (una al giorno, ultime 10, su questo dispositivo) ----------
+  const SNAP_KEY = 'budget-app-autobackup';
+  const SNAP_MAX = 10;
+  const dayKey = (d = new Date()) => `${monthKey(d)}-${String(d.getDate()).padStart(2, '0')}`;
+  const readSnaps = () => (readLS(SNAP_KEY) || []).filter(s => s && s.at && s.data);
+  function addSnapshot(copy, note = '') {
+    if (!copy || !Array.isArray(copy.categories)) return;
+    let snaps = [{ at: Date.now(), note, data: copy }, ...readSnaps()].slice(0, SNAP_MAX);
+    // se lo spazio non basta, tiene meno copie
+    while (snaps.length) {
+      try { localStorage.setItem(SNAP_KEY, JSON.stringify(snaps)); return; } catch { snaps = snaps.slice(0, -1); }
+    }
+  }
+  function saveLocal() {
+    const snaps = readSnaps();
+    if (!snaps.length || dayKey(new Date(snaps[0].at)) !== dayKey()) {
+      const prev = readLS(DATA_KEY);
+      if (prev && prev.updatedAt) addSnapshot(prev);   // i dati com'erano prima delle modifiche di oggi
+    }
+    writeLS(DATA_KEY, data);
+  }
+  function openSnapshots() {
+    const snaps = readSnaps();
+    const when = s => new Date(s.data.updatedAt || s.at).toLocaleString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const months = s => { const n = Object.keys(s.data.months || {}).length; return n === 1 ? '1 mese' : n + ' mesi'; };
+    openSheet(`
+      <h3>Copie automatiche</h3>
+      <p>Ogni giorno in cui usi l'app viene messa da parte una copia dei dati com'erano prima delle modifiche di quel giorno. Restano le ultime ${SNAP_MAX}, su questo dispositivo.</p>
+      ${snaps.length ? `<div class="month-list">${snaps.map((s, i) => `
+        <button class="month-row" data-snap="${i}"><b>${esc(when(s))}</b><span class="r">Ripristina</span>
+          <small>${s.note ? esc(s.note) + ' · ' : ''}${months(s)}</small></button>`).join('')}</div>`
+        : '<p><b>Non ci sono ancora copie.</b> La prima verrà salvata appena inserisci dei dati.</p>'}
+      <button class="btn" data-close style="box-shadow:none;width:100%">Chiudi</button>`);
+    document.querySelectorAll('[data-snap]').forEach(b => b.addEventListener('click', () => {
+      const s = snaps[+b.dataset.snap], copy = normalizeData(s.data);
+      if (!copy) { toast('Questa copia non è leggibile'); return; }
+      confirmSheet({
+        title: 'Ripristinare questa copia?',
+        text: `Torneranno i dati di ${esc(when(s))} (${months(s)}). Quelli attuali restano tra le copie automatiche, così puoi tornare indietro.`,
+        ok: 'Ripristina',
+        onOk: () => {
+          addSnapshot(JSON.parse(JSON.stringify(data)), 'Prima del ripristino');
+          data = copy;
+          commit(); renderList(); refresh(); toast('Copia ripristinata');
+        },
+      });
+    }));
+  }
+
+  // Promemoria: se l'ultimo backup su file ha più di 30 giorni, lo dice il pulsante in alto
+  function updateBackupLabel() {
+    const hasData = Object.values(data.months).some(m => m.saldo > 0 || spentOf(m) > 0);
+    const late = hasData && Date.now() - (readLS(BACKUP_KEY) || 0) > 30 * 864e5;
+    $('#sync').textContent = late ? '💾 Fai un backup dei dati' : '📱 Salvato su questo dispositivo';
   }
 
   // ---------- Installazione come app ----------
@@ -919,7 +975,8 @@
     const when = last ? new Date(last).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     openSheet(`<h3>App e dati</h3>
       <p>I tuoi dati sono salvati solo su questo dispositivo. ${last ? `Ultimo backup: <b>${when}</b>.` : 'Non hai ancora salvato un backup.'}
-      Salvane uno ogni tanto, così non perdi nulla se cambi telefono o cancelli i dati del browser.</p>
+      Salvane uno ogni tanto, così non perdi nulla se cambi telefono o cancelli i dati del browser.
+      In più, ogni giorno l'app tiene da sola una copia dei dati (🕘 Copie automatiche, dentro Backup).</p>
       <button class="btn primary" id="appBackup" style="width:100%">💾 Backup dei dati</button>
       ${installHTML()}
       <button class="del-link" data-close style="color:var(--muted)">Chiudi</button>`);
@@ -1561,13 +1618,15 @@
       <div style="display:grid;gap:10px">
         <button class="btn primary" id="bkSave">💾 Salva il backup</button>
         <button class="btn" id="bkLoad" style="box-shadow:none;background:var(--surface-2)">📂 Carica un backup</button>
+        <button class="btn" id="bkAuto" style="box-shadow:none;background:var(--surface-2)">🕘 Copie automatiche</button>
         <button class="btn" data-close style="box-shadow:none">Chiudi</button>
       </div>`);
     $('#bkSave').addEventListener('click', () => {
       closeSheet();
       offerFile(`budget-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'budget', version: 2, ...data }, null, 1))
-        .then(ok => { if (ok) writeLS(BACKUP_KEY, Date.now()); });
+        .then(ok => { if (ok) { writeLS(BACKUP_KEY, Date.now()); updateBackupLabel(); } });
     });
+    $('#bkAuto').addEventListener('click', openSnapshots);
     $('#bkLoad').addEventListener('click', () => { closeSheet(); $('#backupFile').click(); });
   });
   $('#backupFile').addEventListener('change', async e => {
@@ -2238,11 +2297,20 @@
     savePrefs();
   })();
   if (document.fonts) document.fonts.ready.then(() => { chart && chart.update(); chart2 && chart2.update(); chart3 && chart3.update(); });
-  writeLS(DATA_KEY, data);
+  saveLocal();
+  updateBackupLabel();
   runRecurringOnce();
   // Funzionamento offline e installazione come app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* l'app funziona anche senza */ });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      // Controlla se c'è una versione nuova ogni volta che riapri l'app
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); });
+    }).catch(() => { /* l'app funziona anche senza */ });
+    // Quando arriva una versione nuova, ricarica una volta per mostrarla
+    if (navigator.serviceWorker.controller) {
+      let ricaricata = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (!ricaricata) { ricaricata = true; location.reload(); } });
+    }
   }
 })();
 </script>

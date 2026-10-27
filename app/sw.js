@@ -1,7 +1,7 @@
 // Service worker: rende l'app installabile e utilizzabile anche senza connessione.
 // Strategia "prima la rete": quando sei online carichi sempre l'ultima versione,
 // quando sei offline viene usata la copia salvata.
-const CACHE = 'budget-v3';
+const CACHE = 'budget-v4';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './sfondo.webp'];
 const CACHEABLE_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -24,7 +24,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== self.location.origin && !CACHEABLE_HOSTS.includes(url.hostname)) return;
 
   event.respondWith(
-    fetch(req)
+    (url.origin === self.location.origin ? fetch(url.href, { cache: 'no-cache' }) : fetch(req))
       .then(res => {
         if (res.ok || res.type === 'opaque') {
           const copy = res.clone();
