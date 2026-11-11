@@ -165,6 +165,19 @@
   .saldo-wrap input:focus { border-bottom-color: var(--hero-gold); }
   .saldo-wrap span { font-weight: 700; }
   .stat-input { background: rgba(242,207,107,.13); }
+  .inc-row { display: flex; align-items: center; gap: 6px; }
+  .inc-row .saldo-wrap { flex: 1; min-width: 0; }
+  .inc-add {
+    width: 30px; height: 30px; flex: none; border-radius: 10px;
+    display: grid; place-items: center; font-size: 20px; font-weight: 700; line-height: 1;
+    background: rgba(242,207,107,.22); color: var(--hero-gold); transition: transform .15s;
+  }
+  .inc-add:active { transform: scale(.9); }
+  @media (max-width: 420px) {
+    .inc-row { gap: 4px; }
+    .inc-row .saldo-wrap input { font-size: 16px; }
+    .inc-add { width: 26px; height: 26px; font-size: 18px; border-radius: 8px; }
+  }
 
   .status {
     margin-top: 12px; padding: 11px 14px; border-radius: 14px;
@@ -559,11 +572,29 @@
     <div class="hero-bar" id="heroBar"><span></span></div>
     <div class="stats">
       <div class="stat stat-input">
-        <label class="k" for="saldoInput">Saldo del mese</label>
-        <div class="saldo-wrap">
-          <input id="saldoInput" inputmode="decimal" autocomplete="off" placeholder="0,00">
-          <span>€</span>
+        <label class="k" for="cartaInput">💳 Carta</label>
+        <div class="inc-row">
+          <div class="saldo-wrap">
+            <input id="cartaInput" data-inc="carta" inputmode="decimal" autocomplete="off" placeholder="0,00">
+            <span>€</span>
+          </div>
+          <button class="inc-add" data-inc-add="carta" title="Aggiungi soldi ricevuti sulla carta" aria-label="Aggiungi soldi ricevuti sulla carta">+</button>
         </div>
+      </div>
+      <div class="stat stat-input">
+        <label class="k" for="contantiInput">💵 Contanti</label>
+        <div class="inc-row">
+          <div class="saldo-wrap">
+            <input id="contantiInput" data-inc="contanti" inputmode="decimal" autocomplete="off" placeholder="0,00">
+            <span>€</span>
+          </div>
+          <button class="inc-add" data-inc-add="contanti" title="Aggiungi soldi ricevuti in contanti" aria-label="Aggiungi soldi ricevuti in contanti">+</button>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="k">Saldo del mese</div>
+        <div class="v" id="sumSaldo">0,00 €</div>
+        <div class="p">carta + contanti</div>
       </div>
       <div class="stat">
         <div class="k">Speso finora</div>
@@ -828,7 +859,11 @@
         if (!/^\d{4}-\d{2}$/.test(k) || !m) continue;
         const spese = {};
         for (const [id, v] of Object.entries(m.spese || {})) if (Number(v) > 0) spese[id] = round2(Number(v));
-        months[k] = { saldo: Number(m.saldo) || 0, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [] };
+        // entrate divise in carta e contanti; i mesi salvati prima hanno solo "saldo" e vanno sulla carta
+        const split = m.carta !== undefined || m.contanti !== undefined;
+        const carta = split ? Math.max(0, round2(Number(m.carta) || 0)) : Math.max(0, round2(Number(m.saldo) || 0));
+        const contanti = split ? Math.max(0, round2(Number(m.contanti) || 0)) : 0;
+        months[k] = { saldo: round2(carta + contanti), carta, contanti, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [] };
       }
     }
     return {
@@ -866,7 +901,7 @@
       const data = normalizeData({ categories: old.categories, months: {} });
       const spese = {};
       old.categories.forEach((c, i) => { if (Number(c.amount) > 0) spese[data.categories[i].id] = Number(c.amount); });
-      data.months[monthKey()] = { saldo: Number(old.budget) || 0, spese };
+      data.months[monthKey()] = { saldo: Number(old.budget) || 0, carta: Number(old.budget) || 0, contanti: 0, spese };
       data.updatedAt = Date.now();
       return data;
     }
@@ -898,6 +933,14 @@
   const saldo = () => month().saldo;
   const spent = () => spentOf();
   const remaining = () => round2(saldo() - spent());
+  // Entrate del mese: carta + contanti. "saldo" resta sempre la loro somma.
+  const INC = { carta: { icon: '💳', name: 'sulla carta' }, contanti: { icon: '💵', name: 'in contanti' } };
+  const incomeOf = (kind, m = month()) => (m.carta === undefined && m.contanti === undefined) ? (kind === 'carta' ? m.saldo || 0 : 0) : (m[kind] || 0);
+  function setIncome(m, kind, v) {
+    if (m.carta === undefined && m.contanti === undefined) { m.carta = m.saldo || 0; m.contanti = 0; }
+    m[kind] = Math.max(0, round2(v));
+    m.saldo = round2((m.carta || 0) + (m.contanti || 0));
+  }
 
   // ---------- Salvataggio (locale + sincronizzazione) ----------
   let saveTimer;
@@ -1207,7 +1250,7 @@
   }
 
   // ---------- Riepilogo ----------
-  const saldoInput = $('#saldoInput');
+  const incInputs = [...document.querySelectorAll('[data-inc]')];
   let lastStatus = '';
   function renderSummary() {
     const t = saldo(), s = spent(), r = remaining();
@@ -1215,8 +1258,12 @@
     const label = monthLabel(curMonth);
     $('#monthName').textContent = label;
     document.querySelectorAll('.cur-month').forEach(el => el.textContent = label);
-    if (document.activeElement !== saldoInput) saldoInput.value = t ? fmtNum(t) : '';
-    saldoInput.setAttribute('aria-label', 'Saldo di ' + label + ' in euro');
+    incInputs.forEach(inp => {
+      const v = incomeOf(inp.dataset.inc);
+      if (document.activeElement !== inp) inp.value = v ? fmtNum(v) : '';
+      inp.setAttribute('aria-label', `Entrate ${INC[inp.dataset.inc].name} di ${label} in euro`);
+    });
+    $('#sumSaldo').textContent = fmtEUR(t);
 
     $('#hero').classList.toggle('neg', over);
     $('#remainBig').textContent = fmtSigned(r);
@@ -1233,7 +1280,7 @@
     let cls = '', html;
     const prevKey = shiftMonth(curMonth, -1), prev = data.months[prevKey];
     if (t <= 0) {
-      html = `<span>👋 Inserisci il saldo di ${monthOnly(curMonth)} per iniziare</span>`;
+      html = `<span>👋 Inserisci le entrate di ${monthOnly(curMonth)} (carta o contanti) per iniziare</span>`;
       if (prev && prev.saldo > 0) html += `<button class="mini-btn" id="copyPrev">Usa ${fmtEUR(prev.saldo)} come ${aMonth(prevKey)}</button>`;
     } else if (over) { cls = 'danger'; html = `<span>⚠️ Attenzione: hai superato il saldo di ${fmtEUR(-r)}</span>`; }
     else if (r === 0) html = '<span>🧮 Hai usato tutto il saldo del mese</span>';
@@ -1243,17 +1290,55 @@
     st.className = 'status ' + cls;
     st.innerHTML = html;
     $('#copyPrev')?.addEventListener('click', () => {
-      ensureMonth().saldo = prev.saldo; commit(); refresh(false);
+      const m = ensureMonth();
+      setIncome(m, 'carta', incomeOf('carta', prev)); setIncome(m, 'contanti', incomeOf('contanti', prev));
+      commit(); refresh(false);
       toast('Saldo copiato da ' + monthOnly(prevKey));
     });
     if (cls === 'danger' && lastStatus !== 'danger') { st.style.animation = 'none'; st.offsetHeight; st.style.animation = ''; }
     lastStatus = cls;
   }
 
-  saldoInput.addEventListener('focus', () => saldoInput.select());
-  saldoInput.addEventListener('input', () => { ensureMonth().saldo = parseNum(saldoInput.value); commit(); refresh(); });
-  saldoInput.addEventListener('blur', () => { saldoInput.value = saldo() ? fmtNum(saldo()) : ''; });
-  saldoInput.addEventListener('keydown', e => { if (e.key === 'Enter') saldoInput.blur(); });
+  incInputs.forEach(inp => {
+    const kind = inp.dataset.inc;
+    inp.addEventListener('focus', () => inp.select());
+    inp.addEventListener('input', () => { setIncome(ensureMonth(), kind, parseNum(inp.value)); commit(); refresh(); });
+    inp.addEventListener('blur', () => { const v = incomeOf(kind); inp.value = v ? fmtNum(v) : ''; });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+  });
+  document.querySelectorAll('[data-inc-add]').forEach(b => b.addEventListener('click', () => openIncomeSheet(b.dataset.incAdd)));
+
+  // "+" sulle entrate: aggiunge una somma a quella già inserita
+  function openIncomeSheet(kind) {
+    const I = INC[kind];
+    openSheet(`
+      <div class="preview" style="--c:#D4AF37"><div class="cat-emoji">${I.icon}</div><div><b>Entrate ${I.name}</b><div style="color:var(--muted);font-size:14px">Già inserite ${aMonth(curMonth)}: ${fmtEUR(incomeOf(kind))}</div></div></div>
+      <div class="field">
+        <label for="fInc">Soldi ricevuti da aggiungere</label>
+        <input class="text-input big" id="fInc" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
+        <div class="quick">${[10, 20, 50, 100].map(v => `<button type="button" data-q="${v}">+${v} €</button>`).join('')}</div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" data-close>Annulla</button>
+        <button class="btn primary" id="incOk">Aggiungi</button>
+      </div>`);
+    const f = $('#fInc');
+    setTimeout(() => f.focus(), 300);
+    sheetBody.addEventListener('click', e => {
+      const q = e.target.closest('[data-q]');
+      if (q) { f.value = fmtNum(parseNum(f.value) + Number(q.dataset.q)); }
+    });
+    const go = () => {
+      const v = parseNum(f.value);
+      if (!v) { f.focus(); toast('Scrivi un importo'); return; }
+      const m = ensureMonth();
+      setIncome(m, kind, incomeOf(kind, m) + v);
+      commit(); closeSheet(); refresh();
+      toast(`${fmtEUR(v)} aggiunti alle entrate ${I.name}`);
+    };
+    $('#incOk').addEventListener('click', go);
+    f.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  }
 
   // ---------- Categorie ----------
   const list = $('#catList');
@@ -1874,7 +1959,8 @@
     const q = s => `"${String(s).replace(/"/g, '""')}"`;
     const rows = [[q('Mese'), q(monthLabel(curMonth))], [], ['Categoria', 'Icona', 'Speso (€)', 'Percentuale del saldo (%)']];
     data.categories.forEach(c => rows.push([q(c.name), q(c.emoji), plain(amountOf(c)), plain(base ? amountOf(c) / base * 100 : 0)]));
-    rows.push([], [q('Saldo del mese'), '', plain(base), '100,00']);
+    rows.push([], [q('Entrate su carta'), '', plain(incomeOf('carta')), ''], [q('Entrate in contanti'), '', plain(incomeOf('contanti')), '']);
+    rows.push([q('Saldo del mese'), '', plain(base), '100,00']);
     rows.push([q('Totale speso'), '', plain(spent()), plain(base ? spent() / base * 100 : 0)]);
     rows.push([q('Saldo rimasto'), '', plain(remaining()), plain(base ? remaining() / base * 100 : 0)]);
     const keys = Object.keys(data.months).sort();
@@ -2347,7 +2433,7 @@
       data.savings.moves.push({ id: uid(), type, amount: v, date: todayISO(), note: $('#svNote').value.trim().slice(0, 60), toMonth });
       if (toMonth) {
         if (!data.months[now]) data.months[now] = { saldo: 0, spese: {} };
-        data.months[now].saldo = round2(data.months[now].saldo + v);
+        setIncome(data.months[now], 'carta', incomeOf('carta', data.months[now]) + v);
       }
       commit(); closeSheet(); refresh();
       toast(!out ? `${fmtEUR(v)} versati nei risparmi` : toMonth ? `${fmtEUR(v)} aggiunti al saldo di ${monthOnly(now)}` : `${fmtEUR(v)} prelevati dai risparmi`);
@@ -2366,7 +2452,12 @@
       ok: 'Elimina',
       onOk: () => {
         data.savings.moves = data.savings.moves.filter(x => x.id !== id);
-        if (mv.toMonth && data.months[mv.toMonth]) data.months[mv.toMonth].saldo = Math.max(0, round2(data.months[mv.toMonth].saldo - mv.amount));
+        if (mv.toMonth && data.months[mv.toMonth]) {
+          // si toglie prima dalla carta (dove era stato aggiunto), il resto dai contanti
+          const m = data.months[mv.toMonth], c = incomeOf('carta', m), fromCard = Math.min(c, mv.amount);
+          setIncome(m, 'carta', c - fromCard);
+          setIncome(m, 'contanti', incomeOf('contanti', m) - (mv.amount - fromCard));
+        }
         commit(); refresh(); toast('Movimento eliminato');
       },
     });
