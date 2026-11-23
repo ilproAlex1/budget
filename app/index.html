@@ -355,6 +355,17 @@
   body.rep #prevMonth, body.rep #nextMonth, body.rep .month-wrap,
   body.rep #hero, body.rep #status, body.rep .mini { display: none; }
   body.rep #tab-report > .section-head:first-child { margin-top: 4px; }
+  body.mov #hero, body.mov #status, body.mov .mini { display: none; }
+
+  /* ---------- Movimenti ---------- */
+  #tab-moves > .section-head:first-child { margin-top: 4px; }
+  .row.mv-row { grid-template-columns: auto 1fr auto; gap: 12px; }
+  .mv-ic { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; font-size: 20px; background: color-mix(in srgb, var(--c) 18%, transparent); }
+  .mv-main { min-width: 0; }
+  .mv-row .mv-main b { display: block; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mv-row .mv-main small { display: block; grid-column: auto; margin-top: 2px; line-height: 1.35; }
+  .mv-row .r { font-size: 16px; }
+  .mv-row.old { opacity: .75; }
 
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); }
   .seg button { padding: 10px 4px; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--muted); transition: background .2s, color .2s; }
@@ -445,15 +456,15 @@
     position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: min(470px, calc(100% - 24px));
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 6px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 6px;
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
   }
   .tabbar button {
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 8px 6px; border-radius: 18px; color: var(--muted);
-    font-size: 12px; font-weight: 700; transition: background .2s, color .2s;
+    padding: 8px 2px; border-radius: 18px; color: var(--muted); min-width: 0; white-space: nowrap;
+    font-size: 11px; font-weight: 700; transition: background .2s, color .2s;
   }
   .tabbar button svg { width: 22px; height: 22px; }
   .tabbar button[aria-selected="true"] { background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
@@ -629,6 +640,19 @@
     <input type="file" id="backupFile" accept=".json,application/json" hidden>
   </section>
 
+  <!-- ===== Scheda Movimenti ===== -->
+  <section class="tab" id="tab-moves">
+    <div class="section-head"><h2>Movimenti di <span class="cur-month"></span></h2></div>
+    <div class="tiles" id="movTiles" style="margin-top:0"></div>
+    <div class="seg" id="movFilter" role="tablist" style="margin-top:12px">
+      <button data-f="all">Tutti</button>
+      <button data-f="out">Uscite</button>
+      <button data-f="in">Entrate</button>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="rows" id="movRows"></div></div>
+    <p class="note">Ogni spesa o entrata che inserisci compare qui con il giorno e l'ora. Tocca un movimento per eliminarlo: la cifra viene tolta anche dal mese.</p>
+  </section>
+
   <!-- ===== Scheda Grafici ===== -->
   <section class="tab" id="tab-charts">
     <div class="section-head"><h2>Spese di <span class="cur-month"></span></h2></div>
@@ -749,6 +773,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M7 6V4.5A1.5 1.5 0 0 1 8.5 3h7A1.5 1.5 0 0 1 17 4.5V6"/></svg>
     Spese
   </button>
+  <button role="tab" data-tab="moves" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/></svg>
+    Movimenti
+  </button>
   <button role="tab" data-tab="charts" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>
     Grafici
@@ -863,7 +891,11 @@
         const split = m.carta !== undefined || m.contanti !== undefined;
         const carta = split ? Math.max(0, round2(Number(m.carta) || 0)) : Math.max(0, round2(Number(m.saldo) || 0));
         const contanti = split ? Math.max(0, round2(Number(m.contanti) || 0)) : 0;
-        months[k] = { saldo: round2(carta + contanti), carta, contanti, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [] };
+        // registro dei movimenti con data: { id, t, amount (variazione), cat | inc, note }
+        const log = (Array.isArray(m.log) ? m.log : [])
+          .filter(e => e && Number(e.amount) && Number(e.t) > 0 && (typeof e.cat === 'string' || e.inc === 'carta' || e.inc === 'contanti'))
+          .map(e => ({ id: String(e.id || uid()), t: Number(e.t), amount: round2(Number(e.amount)), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.note ? { note: String(e.note).slice(0, 60) } : {}) }));
+        months[k] = { saldo: round2(carta + contanti), carta, contanti, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [], log };
       }
     }
     return {
@@ -951,6 +983,32 @@
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveLocal, 300);
   }
+
+  // ---------- Registro dei movimenti (giorno e ora di ogni entrata e uscita) ----------
+  function logMove(m, e) {   // e: { cat | inc, amount: variazione della cifra, note }
+    if (!m || !e.amount || Math.abs(e.amount) < 0.005) return;
+    (m.log || (m.log = [])).push({ id: uid(), t: Date.now(), amount: round2(e.amount), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.note ? { note: e.note } : {}) });
+  }
+  // Mentre si scrive in un campo (o si muove uno slider) si ricorda la cifra di partenza;
+  // quando si conferma si registra un solo movimento con la differenza.
+  const pend = {};
+  const pendValue = (p, m) => !m ? 0 : p.cat ? (m.spese[p.cat] || 0) : incomeOf(p.inc, m);
+  function pendStart(key, p) { if (!pend[key]) pend[key] = { ...p, k: curMonth, start: pendValue(p, data.months[curMonth]) }; }
+  function pendFlush(key) {
+    const p = pend[key];
+    if (!p) return false;
+    delete pend[key];
+    const m = data.months[p.k];
+    const d = round2(pendValue(p, m) - p.start);
+    if (!m || !d) return false;
+    logMove(m, p.cat ? { cat: p.cat, amount: d } : { inc: p.inc, amount: d });
+    commit();
+    return true;
+  }
+  const pendFlushAll = () => Object.keys(pend).map(pendFlush).some(Boolean);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && pendFlushAll()) { clearTimeout(saveTimer); saveLocal(); }
+  });
 
   // ---------- Copie automatiche (una al giorno, ultime 10, su questo dispositivo) ----------
   const SNAP_KEY = 'budget-app-autobackup';
@@ -1290,8 +1348,12 @@
     st.className = 'status ' + cls;
     st.innerHTML = html;
     $('#copyPrev')?.addEventListener('click', () => {
-      const m = ensureMonth();
-      setIncome(m, 'carta', incomeOf('carta', prev)); setIncome(m, 'contanti', incomeOf('contanti', prev));
+      const m = ensureMonth(), note = 'Copiato da ' + monthOnly(prevKey);
+      ['carta', 'contanti'].forEach(kind => {
+        const before = incomeOf(kind, m);
+        setIncome(m, kind, incomeOf(kind, prev));
+        logMove(m, { inc: kind, amount: incomeOf(kind, m) - before, note });
+      });
       commit(); refresh(false);
       toast('Saldo copiato da ' + monthOnly(prevKey));
     });
@@ -1302,7 +1364,8 @@
   incInputs.forEach(inp => {
     const kind = inp.dataset.inc;
     inp.addEventListener('focus', () => inp.select());
-    inp.addEventListener('input', () => { setIncome(ensureMonth(), kind, parseNum(inp.value)); commit(); refresh(); });
+    inp.addEventListener('input', () => { pendStart('i:' + kind, { inc: kind }); setIncome(ensureMonth(), kind, parseNum(inp.value)); commit(); refresh(); });
+    inp.addEventListener('change', () => { if (pendFlush('i:' + kind)) renderMoves(); });
     inp.addEventListener('blur', () => { const v = incomeOf(kind); inp.value = v ? fmtNum(v) : ''; });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
   });
@@ -1333,6 +1396,7 @@
       if (!v) { f.focus(); toast('Scrivi un importo'); return; }
       const m = ensureMonth();
       setIncome(m, kind, incomeOf(kind, m) + v);
+      logMove(m, { inc: kind, amount: v });
       commit(); closeSheet(); refresh();
       toast(`${fmtEUR(v)} aggiunti alle entrate ${I.name}`);
     };
@@ -1400,6 +1464,7 @@
     const card = e.target.closest('.cat');
     if (!card) return;
     const c = catById(card.dataset.id);
+    if (e.target.classList.contains('amount') || e.target.classList.contains('slider')) pendStart('c:' + c.id, { cat: c.id });
     if (e.target.classList.contains('amount')) {
       setAmount(c, parseNum(e.target.value));
     } else if (e.target.classList.contains('slider')) {
@@ -1408,6 +1473,10 @@
     } else return;
     updateCard(c);
     refreshSummaryAndCharts();
+  });
+  list.addEventListener('change', e => {
+    const card = e.target.closest('.cat');
+    if (card && pendFlush('c:' + card.dataset.id)) renderMoves();
   });
   list.addEventListener('focusin', e => { if (e.target.classList.contains('amount')) e.target.select(); });
   list.addEventListener('focusout', e => {
@@ -1596,6 +1665,7 @@
       const v = parseNum(f.value);
       if (!v) { f.focus(); toast('Scrivi un importo'); return; }
       setAmount(cat, amountOf(cat) + v);
+      logMove(ensureMonth(), { cat: cat.id, amount: v });
       closeSheet(); refresh(false);
       toast(`${fmtEUR(v)} aggiunti a ${cat.name}`);
     };
@@ -1675,7 +1745,7 @@
         ok: 'Elimina',
         onOk: () => {
           data.categories = data.categories.filter(c => c.id !== cat.id);
-          Object.values(data.months).forEach(m => delete m.spese[cat.id]);
+          Object.values(data.months).forEach(m => { delete m.spese[cat.id]; if (m.log) m.log = m.log.filter(e => e.cat !== cat.id); });
           data.recurring = data.recurring.filter(r => r.catId !== cat.id);
           commit(); renderList(); refresh(false); toast('Categoria eliminata');
         },
@@ -2434,6 +2504,7 @@
       if (toMonth) {
         if (!data.months[now]) data.months[now] = { saldo: 0, spese: {} };
         setIncome(data.months[now], 'carta', incomeOf('carta', data.months[now]) + v);
+        logMove(data.months[now], { inc: 'carta', amount: v, note: 'Prelievo dai risparmi' });
       }
       commit(); closeSheet(); refresh();
       toast(!out ? `${fmtEUR(v)} versati nei risparmi` : toMonth ? `${fmtEUR(v)} aggiunti al saldo di ${monthOnly(now)}` : `${fmtEUR(v)} prelevati dai risparmi`);
@@ -2455,8 +2526,11 @@
         if (mv.toMonth && data.months[mv.toMonth]) {
           // si toglie prima dalla carta (dove era stato aggiunto), il resto dai contanti
           const m = data.months[mv.toMonth], c = incomeOf('carta', m), fromCard = Math.min(c, mv.amount);
+          const fromCash = Math.min(incomeOf('contanti', m), round2(mv.amount - fromCard));
           setIncome(m, 'carta', c - fromCard);
-          setIncome(m, 'contanti', incomeOf('contanti', m) - (mv.amount - fromCard));
+          setIncome(m, 'contanti', incomeOf('contanti', m) - fromCash);
+          logMove(m, { inc: 'carta', amount: -fromCard, note: 'Prelievo dai risparmi eliminato' });
+          logMove(m, { inc: 'contanti', amount: -fromCash, note: 'Prelievo dai risparmi eliminato' });
         }
         commit(); refresh(); toast('Movimento eliminato');
       },
@@ -2486,6 +2560,7 @@
         if (m.applied.includes(r.id)) continue;
         m.spese[r.catId] = round2((m.spese[r.catId] || 0) + r.amount);
         m.applied.push(r.id);
+        logMove(m, { cat: r.catId, amount: r.amount, note: '🔁 ' + r.name });
         done.push(r.name);
       }
     }
@@ -2580,6 +2655,11 @@
           m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
           if (!m.spese[rec.catId]) delete m.spese[rec.catId];
           m.spese[catId] = round2((m.spese[catId] || 0) + amount);
+          if (catId === rec.catId) logMove(m, { cat: catId, amount: amount - rec.amount, note: '🔁 ' + name + ' (modificata)' });
+          else {
+            logMove(m, { cat: rec.catId, amount: -rec.amount, note: '🔁 ' + rec.name + ' (spostata)' });
+            logMove(m, { cat: catId, amount, note: '🔁 ' + name });
+          }
         }
         Object.assign(rec, { name, amount, catId });
         toast('Spesa fissa aggiornata');
@@ -2597,6 +2677,7 @@
         m.spese[rec.catId] = Math.max(0, round2((m.spese[rec.catId] || 0) - rec.amount));
         if (!m.spese[rec.catId]) delete m.spese[rec.catId];
         m.applied = m.applied.filter(x => x !== rec.id);
+        logMove(m, { cat: rec.catId, amount: -rec.amount, note: '🔁 ' + rec.name + ' (eliminata)' });
       }
       data.recurring = data.recurring.filter(r => r.id !== rec.id);
       commit(); closeSheet(); refresh(); toast('Spesa fissa eliminata');
@@ -2614,11 +2695,96 @@
     $('#rDelNext').addEventListener('click', () => remove(false));
   }
 
+  // ---------- Scheda Movimenti ----------
+  const movVisible = () => $('#tab-moves').classList.contains('active');
+  const INC_ROW = { carta: { emoji: '💳', name: 'Entrata carta' }, contanti: { emoji: '💵', name: 'Entrata contanti' } };
+  const fmtWhenShort = t => {
+    const d = new Date(t);
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  };
+  // movimenti del mese: quelli registrati + le cifre inserite prima del registro (senza data)
+  function movesOf(k) {
+    const m = data.months[k];
+    if (!m) return [];
+    const log = (m.log || []).filter(e => e.inc || catById(e.cat));
+    const sum = f => round2(log.filter(f).reduce((a, e) => a + e.amount, 0));
+    const old = [];
+    data.categories.forEach(c => {
+      const r = round2((m.spese[c.id] || 0) - sum(e => e.cat === c.id));
+      if (r >= 0.01 && r <= (m.spese[c.id] || 0)) old.push({ cat: c.id, amount: r, old: true });   // solo cifre davvero inserite prima del registro
+    });
+    ['carta', 'contanti'].forEach(kind => {
+      const r = round2(incomeOf(kind, m) - sum(e => e.inc === kind));
+      if (r >= 0.01 && r <= incomeOf(kind, m)) old.push({ inc: kind, amount: r, old: true });
+    });
+    return [...log].sort((a, b) => b.t - a.t).concat(old);
+  }
+  function moveInfo(e) {
+    const c = e.cat ? catById(e.cat) : null;
+    const base = c ? { emoji: c.emoji, name: c.name, color: c.color } : { ...INC_ROW[e.inc], color: '#D4AF37' };
+    const value = c ? -e.amount : e.amount;           // uscita = segno meno, entrata = segno più
+    const fix = (c && e.amount < 0) || (!c && e.amount < 0) ? 'correzione' : '';
+    const sub = e.old ? 'Data non registrata (inserito prima)' : [fmtWhenShort(e.t), e.note, fix].filter(Boolean).join(' · ');
+    return { ...base, value, sub };
+  }
+  function renderMoves() {
+    if (!movVisible()) return;
+    const m = month();
+    $('#movTiles').innerHTML = `
+      <div class="tile"><div class="k">Entrate</div><div class="v" style="color:var(--success)">+ ${fmtEUR(m.saldo || 0)}</div><div class="p">carta + contanti</div></div>
+      <div class="tile"><div class="k">Uscite</div><div class="v" style="color:var(--danger)">− ${fmtEUR(spent())}</div><div class="p">spese del mese</div></div>`;
+    const f = ['all', 'out', 'in'].includes(prefs.movFilter) ? prefs.movFilter : 'all';
+    $('#movFilter').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+    const all = movesOf(curMonth);
+    const rows = all.filter(e => f === 'all' || (f === 'out' ? !!e.cat : !!e.inc));
+    if (!rows.length) {
+      $('#movRows').innerHTML = `<p class="note" style="margin:4px 2px">${all.length
+        ? (f === 'out' ? 'Nessuna uscita' : 'Nessuna entrata') + ' ' + aMonth(curMonth) + '.'
+        : `Nessun movimento ${aMonth(curMonth)}. Le spese e le entrate che aggiungi compariranno qui con la data.`}</p>`;
+      return;
+    }
+    $('#movRows').innerHTML = rows.map(e => {
+      const i = moveInfo(e);
+      const tag = e.old ? 'div' : 'button';
+      return `<${tag} class="row mv-row${e.old ? ' old' : ''}" ${e.old ? '' : `data-log="${e.id}"`} style="--c:${i.color}">
+        <span class="mv-ic">${esc(i.emoji)}</span>
+        <span class="mv-main"><b>${esc(i.name)}</b><small>${esc(i.sub)}</small></span>
+        <span class="r ${i.value < 0 ? 'minus' : 'plus'}">${i.value < 0 ? '− ' + fmtEUR(-i.value) : '+ ' + fmtEUR(i.value)}</span>
+      </${tag}>`;
+    }).join('');
+  }
+  $('#movFilter').addEventListener('click', e => {
+    const b = e.target.closest('[data-f]');
+    if (b) { prefs.movFilter = b.dataset.f; savePrefs(); renderMoves(); }
+  });
+  $('#movRows').addEventListener('click', e => {
+    const b = e.target.closest('[data-log]');
+    if (!b) return;
+    const m = data.months[curMonth], mv = m && (m.log || []).find(x => x.id === b.dataset.log);
+    if (!mv) return;
+    const i = moveInfo(mv);
+    confirmSheet({
+      title: 'Eliminare questo movimento?',
+      text: `${esc(i.emoji + ' ' + i.name)}: <b>${i.value < 0 ? '− ' + fmtEUR(-i.value) : '+ ' + fmtEUR(i.value)}</b> del ${esc(fmtWhenShort(mv.t))}. La cifra verrà tolta anche ${mv.cat ? 'dalle spese' : 'dalle entrate'} di ${monthLabel(curMonth)}.`,
+      ok: 'Elimina',
+      onOk: () => {
+        if (mv.cat) {
+          const v = round2((m.spese[mv.cat] || 0) - mv.amount);
+          if (v > 0) m.spese[mv.cat] = v; else delete m.spese[mv.cat];
+        } else setIncome(m, mv.inc, incomeOf(mv.inc, m) - mv.amount);
+        m.log = m.log.filter(x => x.id !== mv.id);
+        commit(); refresh(); toast('Movimento eliminato');
+      },
+    });
+  });
+
   // ---------- Schede ----------
   function setTab(tab) {    prefs.tab = tab;
     document.querySelectorAll('.tab').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
     document.querySelectorAll('.tabbar button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
     document.body.classList.toggle('rep', tab === 'report' || tab === 'savings');
+    document.body.classList.toggle('mov', tab === 'moves');
+    if (tab === 'moves') { pendFlushAll(); renderMoves(); }
     $('#repTitle').textContent = tab === 'savings' ? 'Risparmi' : 'Resoconto';
     if (tab === 'savings') renderSavings();
     else if (chart4) { chart4.destroy(); chart4 = null; }
@@ -2640,7 +2806,7 @@
   new IntersectionObserver(([en]) => $('#mini').classList.toggle('show', !en.isIntersecting), { threshold: 0 }).observe($('#hero'));
 
   // ---------- Aggiornamento globale ----------
-  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); renderSavings(); renderRecurring(); }
+  function refreshSummaryAndCharts() { renderSummary(); updateCharts(); renderReport(); renderSavings(); renderRecurring(); renderMoves(); }
   function refresh() { data.categories.forEach(updateCard); refreshSummaryAndCharts(); }
 
   // ---------- Niente zoom (Safari su iPhone ignora user-scalable=no) ----------
@@ -2654,7 +2820,7 @@
   renderList();
   renderSummary();
   renderRecurring();
-  setTab(['charts', 'report', 'savings'].includes(prefs.tab) ? prefs.tab : 'budget');
+  setTab(['moves', 'charts', 'report', 'savings'].includes(prefs.tab) ? prefs.tab : 'budget');
   // Alla prima apertura di un mese nuovo: avvisa di quanto è andato nei risparmi
   (() => {
     const now = monthKey(), last = prefs.lastOpenMonth;
