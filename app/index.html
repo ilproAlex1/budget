@@ -510,6 +510,7 @@
   .grid-pick button.sel { border-color: var(--primary); }
   .swatch { background: var(--sw) !important; }
   .swatch.sel { border-color: var(--text) !important; box-shadow: inset 0 0 0 2px var(--surface); }
+  .pay-seg { grid-template-columns: 1fr 1fr; background: var(--surface-2); box-shadow: none; }
   .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
   .quick button { padding: 10px 0; border-radius: 12px; background: var(--surface-2); font-weight: 700; }
   .custom-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
@@ -894,7 +895,7 @@
         // registro dei movimenti con data: { id, t, amount (variazione), cat | inc, note }
         const log = (Array.isArray(m.log) ? m.log : [])
           .filter(e => e && Number(e.amount) && Number(e.t) > 0 && (typeof e.cat === 'string' || e.inc === 'carta' || e.inc === 'contanti'))
-          .map(e => ({ id: String(e.id || uid()), t: Number(e.t), amount: round2(Number(e.amount)), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.note ? { note: String(e.note).slice(0, 60) } : {}) }));
+          .map(e => ({ id: String(e.id || uid()), t: Number(e.t), amount: round2(Number(e.amount)), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.pay === "carta" || e.pay === "contanti" ? { pay: e.pay } : {}), ...(e.note ? { note: String(e.note).slice(0, 60) } : {}) }));
         months[k] = { saldo: round2(carta + contanti), carta, contanti, spese, applied: Array.isArray(m.applied) ? m.applied.filter(x => typeof x === 'string') : [], log };
       }
     }
@@ -985,9 +986,9 @@
   }
 
   // ---------- Registro dei movimenti (giorno e ora di ogni entrata e uscita) ----------
-  function logMove(m, e) {   // e: { cat | inc, amount: variazione della cifra, note }
+  function logMove(m, e) {   // e: { cat | inc, amount: variazione della cifra, note, pay: "carta"|"contanti" }
     if (!m || !e.amount || Math.abs(e.amount) < 0.005) return;
-    (m.log || (m.log = [])).push({ id: uid(), t: Date.now(), amount: round2(e.amount), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.note ? { note: e.note } : {}) });
+    (m.log || (m.log = [])).push({ id: uid(), t: Date.now(), amount: round2(e.amount), ...(e.cat ? { cat: e.cat } : { inc: e.inc }), ...(e.pay ? { pay: e.pay } : {}), ...(e.note ? { note: e.note } : {}) });
   }
   // Mentre si scrive in un campo (o si muove uno slider) si ricorda la cifra di partenza;
   // quando si conferma si registra un solo movimento con la differenza.
@@ -1642,8 +1643,9 @@
     $('#okBtn').addEventListener('click', () => { closeSheet(); onOk(); });
   }
 
+  const isOtherCat = cat => cat.name.trim().toLowerCase() === 'altro';
   function openAddSheet(cat) {
-    const cur = amountOf(cat);
+    const cur = amountOf(cat), isOther = isOtherCat(cat);
     openSheet(`
       <div class="preview" style="--c:${cat.color}"><div class="cat-emoji">${esc(cat.emoji)}</div><div><b>${esc(cat.name)}</b><div style="color:var(--muted);font-size:14px">Speso ${aMonth(curMonth)}: ${fmtEUR(cur)}</div></div></div>
       <div class="field">
@@ -1651,26 +1653,49 @@
         <input class="text-input big" id="fAdd" inputmode="decimal" autocomplete="off" placeholder="0,00 €">
         <div class="quick">${[5, 10, 20, 50].map(v => `<button type="button" data-q="${v}">+${v} €</button>`).join('')}</div>
       </div>
+      <div class="field">
+        <label>Pagato con</label>
+        <div class="seg pay-seg" id="fPay" role="radiogroup">
+          <button type="button" role="radio" data-pay="carta">💳 Carta</button>
+          <button type="button" role="radio" data-pay="contanti">💵 Contanti</button>
+        </div>
+      </div>
+      ${isOther ? `<div class="field">
+        <label for="fWhat">Su cosa li hai spesi?</label>
+        <input class="text-input" id="fWhat" maxlength="60" autocomplete="off" placeholder="Es. regalo, farmacia, parrucchiere…">
+      </div>` : ''}
       <div class="sheet-actions">
         <button class="btn" data-close>Annulla</button>
         <button class="btn primary" id="addOk">Aggiungi</button>
       </div>`);
-    const f = $('#fAdd');
+    const f = $('#fAdd'), what = $('#fWhat');
+    let pay = prefs.pay === 'contanti' ? 'contanti' : 'carta';   // ricorda l'ultima scelta
+    const syncPay = () => sheetBody.querySelectorAll('[data-pay]').forEach(b => {
+      b.classList.toggle('active', b.dataset.pay === pay);
+      b.setAttribute('aria-checked', b.dataset.pay === pay);
+    });
+    syncPay();
     setTimeout(() => f.focus(), 300);
     sheetBody.addEventListener('click', e => {
       const q = e.target.closest('[data-q]');
       if (q) { f.value = fmtNum(parseNum(f.value) + Number(q.dataset.q)); }
+      const p = e.target.closest('[data-pay]');
+      if (p) { pay = p.dataset.pay; syncPay(); }
     });
     const go = () => {
       const v = parseNum(f.value);
       if (!v) { f.focus(); toast('Scrivi un importo'); return; }
+      const note = what ? what.value.trim() : '';
+      if (what && !note) { what.focus(); toast('Scrivi su cosa li hai spesi'); return; }
+      prefs.pay = pay; savePrefs();
       setAmount(cat, amountOf(cat) + v);
-      logMove(ensureMonth(), { cat: cat.id, amount: v });
+      logMove(ensureMonth(), { cat: cat.id, amount: v, pay, note });
       closeSheet(); refresh(false);
-      toast(`${fmtEUR(v)} aggiunti a ${cat.name}`);
+      toast(`${fmtEUR(v)} aggiunti a ${note || cat.name} (${pay})`);
     };
     $('#addOk').addEventListener('click', go);
-    f.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    f.addEventListener('keydown', e => { if (e.key === 'Enter') { if (what && !what.value.trim()) what.focus(); else go(); } });
+    if (what) what.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   }
 
   function openCatSheet(cat) {
@@ -2722,9 +2747,12 @@
   function moveInfo(e) {
     const c = e.cat ? catById(e.cat) : null;
     const base = c ? { emoji: c.emoji, name: c.name, color: c.color } : { ...INC_ROW[e.inc], color: '#D4AF37' };
+    const named = c && e.note && e.pay && isOtherCat(c);    // spesa "Altro" con descrizione: la descrizione diventa il titolo
+    if (named) base.name = `${c.name}: ${e.note}`;
+    const payTxt = e.pay === "carta" ? "💳 Carta" : e.pay === "contanti" ? "💵 Contanti" : "";
     const value = c ? -e.amount : e.amount;           // uscita = segno meno, entrata = segno più
     const fix = (c && e.amount < 0) || (!c && e.amount < 0) ? 'correzione' : '';
-    const sub = e.old ? 'Data non registrata (inserito prima)' : [fmtWhenShort(e.t), e.note, fix].filter(Boolean).join(' · ');
+    const sub = e.old ? 'Data non registrata (inserito prima)' : [fmtWhenShort(e.t), payTxt, named ? "" : e.note, fix].filter(Boolean).join(' · ');
     return { ...base, value, sub };
   }
   function renderMoves() {
