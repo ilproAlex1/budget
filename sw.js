@@ -1,7 +1,7 @@
 // Service worker: rende l'app installabile e utilizzabile anche senza connessione.
 // Strategia "prima la rete": quando sei online carichi sempre l'ultima versione,
 // quando sei offline viene usata la copia salvata.
-const CACHE = 'budget-v7';
+const CACHE = 'budget-v8';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './sfondo.webp'];
 const CACHEABLE_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
